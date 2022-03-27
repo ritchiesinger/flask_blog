@@ -1,3 +1,5 @@
+"""Настройки установщика."""
+
 from setuptools import setup
 
 setup(

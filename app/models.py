@@ -1,3 +1,5 @@
+"""Модели БД."""
+
 from time import time
 
 from jwt import encode as jwt_encode, decode as jwt_decode, exceptions as jwt_exceptions

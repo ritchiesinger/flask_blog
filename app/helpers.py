@@ -1,3 +1,5 @@
+"""Вспомогательные инструменты и константы."""
+
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -57,7 +59,7 @@ class Response:
         self.token = token
 
     def get(self) -> Tuple[wrappers.Response, int]:
-        if g.user:
+        if g.get("user"):
             self.token = g.user.generate_token()
         response_body = {"error_code": self.error_code, "error_text": self.error_text, "data": self.data}
         if self.token:

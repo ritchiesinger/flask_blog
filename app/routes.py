@@ -1,3 +1,5 @@
+"""Пути (Views/Routes) сервиса."""
+
 from flask import g, request, session
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth, MultiAuth
 
