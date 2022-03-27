@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='app',
-    packages=['app'],
+    packages=[],
     include_package_data=True,
     install_requires=[
         'Flask==2.0.3',
