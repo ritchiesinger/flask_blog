@@ -1,4 +1,7 @@
 # Общее описание
+
+[![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/PyCQA/pylint)
+
 Учебный проект для освоения фреймворка Flask.
 
 Проект представляет собой сервис с REST API. Т.к цель исключительно образовательная, то составить перечень 
