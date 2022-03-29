@@ -1,15 +1,20 @@
 """Инициализация приложения."""
 
 from flask import Flask
-from config import Config
 from flask_migrate import Migrate
 from flask_cors import CORS
+
+from config import Config
 
 migrate = Migrate()
 cors = CORS()
 
 
 def create_app(config_class=Config):
+    """Фабрика приложения Flask."""
+
+    # pylint: disable=import-outside-toplevel  # Особенность Flask
+
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -21,5 +26,4 @@ def create_app(config_class=Config):
     from app.blueprints.main import bp as main_bp
     app.register_blueprint(main_bp)
 
-    from app import models
     return app

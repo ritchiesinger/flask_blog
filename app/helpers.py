@@ -8,6 +8,7 @@ from flask import g, jsonify, wrappers
 
 @dataclass
 class HTTPCodes:
+    """HTTP коды ответов сервера."""
     SUCCESS = 200
     BAD_REQUEST = 400
     NOT_FOUND = 404
@@ -15,6 +16,7 @@ class HTTPCodes:
 
 @dataclass
 class ErrorCodes:
+    """Бизнес-коды ошибок."""
     SUCCESS = 0
     LOGIN_ALREADY_EXIST = 1
     EMAIL_ALREADY_EXIST = 2
@@ -30,6 +32,7 @@ class ErrorCodes:
 
 @dataclass
 class ErrorTexts:
+    """Возможные тексты ошибок."""
     LOGIN_ALREADY_EXIST = "Пользователь с таким login уже зарегистрирован!"
     EMAIL_ALREADY_EXIST = "Пользователь с таким email уже зарегистрирован!"
     REQUIRED_ARGS_MISSING = "Отсутствуют обязательные аргументы!"
@@ -42,9 +45,10 @@ class ErrorTexts:
     ROLE_ASSINGMENT_NOT_FOUND = "Роль не найдена у пользователя!"
 
 
-class Response:
+class Response:  # pylint: disable=too-few-public-methods  # Здесь больше не нужно
+    """Возвращаемый ответ."""
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments  # Нужно больше 5 аргументов
         self,
         status_code=HTTPCodes.SUCCESS,
         error_code=ErrorCodes.SUCCESS,
@@ -59,9 +63,14 @@ class Response:
         self.token = token
 
     def get(self) -> Tuple[wrappers.Response, int]:
+        """Генерация ответа на основе данных сформированного объекта."""
         if g.get("user"):
             self.token = g.user.generate_token()
-        response_body = {"error_code": self.error_code, "error_text": self.error_text, "data": self.data}
+        response_body = {
+            "error_code": self.error_code,
+            "error_text": self.error_text,
+            "data": self.data
+        }
         if self.token:
             response_body["token"] = self.token
         return jsonify(response_body), self.status_code
@@ -69,6 +78,8 @@ class Response:
 
 @dataclass
 class Errors:
+    """Преднастроенные константы возможных ответов API сервиса."""
+
     EMPTY_SUCCESS = Response()
     LOGIN_ALREADY_EXIST = Response(
         status_code=HTTPCodes.BAD_REQUEST,

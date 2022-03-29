@@ -1,3 +1,5 @@
+"""Методы API для администратора."""
+
 from flask import Blueprint
 from app.blueprints.api.admin.users import bp as users_bp
 from app.blueprints.api.admin.role import bp as roles_bp

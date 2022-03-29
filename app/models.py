@@ -1,6 +1,9 @@
 """Модели БД."""
 
+# pylint: disable=no-member  # Особенность асбтрактного представления моделей без существующего ещё приложения
+
 from time import time
+from typing import Dict, Optional, Union
 
 from jwt import encode as jwt_encode, decode as jwt_decode, exceptions as jwt_exceptions
 from passlib.apps import custom_app_context as pwd_context
@@ -11,6 +14,7 @@ db = SQLAlchemy()
 
 
 class User(db.Model):
+    """Модель сущности Пользователь."""
     id = db.Column(db.Integer, primary_key=True)
     login = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
@@ -21,6 +25,7 @@ class User(db.Model):
         return f"{self.to_dict()}"
 
     def to_dict(self):
+        """Формирования модели в виде словаря."""
         user_info = {
             "id": self.id,
             "login": self.login,
@@ -32,13 +37,27 @@ class User(db.Model):
         }
         return user_info
 
-    def hash_password(self, password):
+    def hash_password(self, password: str):
+        """Хэширование пароля.
+
+        :param password: пароль.
+        """
         self.password_hash = pwd_context.encrypt(password)
 
-    def verify_password(self, password):
+    def verify_password(self, password: str) -> bool:
+        """Проверка пароля.
+
+        :param password: пароль.
+        :return: результат проверки пароля.
+        """
         return pwd_context.verify(password, self.password_hash)
 
-    def generate_token(self, expiration=None):
+    def generate_token(self, expiration: int = None) -> str:
+        """Создание JWT токена.
+
+        :param expiration: время протухания в секундах.
+        :return: токен.
+        """
         expiration = expiration or current_app.config["TOKEN_EXPIRATION"]
         token = jwt_encode(
             {"id": self.id, "exp": time() + expiration},
@@ -48,9 +67,17 @@ class User(db.Model):
         return token
 
     @staticmethod
-    def verify_token(token):
+    def verify_token(token: str) -> Optional[db.Model]:
+        """Проверка токена.
+
+        :param token: JWT токен.
+        :return: модель текущего пользователя в случае успешной проверки, иначе None.
+        """
         try:
-            decoded_signature = jwt_decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
+            decoded_signature = jwt_decode(
+                token, current_app.config["SECRET_KEY"],
+                algorithms=["HS256"]
+            )
         except jwt_exceptions.ExpiredSignatureError:
             return None  # valid token, but expired
         except jwt_exceptions.InvalidSignatureError:
@@ -60,11 +87,14 @@ class User(db.Model):
 
 
 class Role(db.Model):
+    """Модель сущности Роль."""
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64))
     description = db.Column(db.String(256))
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Union[str, int]]:
+        """Формирование модели в виде словаря."""
         return {
             "id": self.id,
             "name": self.name,
@@ -72,13 +102,17 @@ class Role(db.Model):
         }
 
     def __repr__(self):
+        """Представление объекта модели."""
         return str(self.to_dict())
 
 
-class UserRoles(db.Model):
+class UserRoles(db.Model):  # pylint: disable=too-few-public-methods  # Такая модель
+    """Модель связи ролей и пользователей."""
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
 
     def __repr__(self):
+        """Представление объекта модели."""
         return f"<UserRole {self.user_id} {self.role_id}>"

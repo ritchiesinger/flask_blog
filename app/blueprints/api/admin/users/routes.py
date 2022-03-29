@@ -1,64 +1,83 @@
+"""Маршруты связанные с пользователями в API."""
+
+# pylint: disable=no-member  # Особенность асбтрактного представления моделей без существующего ещё приложения
+
+from typing import Optional, Tuple
+
 from flask import request, g
 
-from . import bp as users_bp
 from app.helpers import Response, Errors
 from app.blueprints.api.auth import multi_auth
 from app.models import User, db
+from . import bp as users_bp
 
 
-@users_bp.route("/<int:user_id>", methods=["GET", "DELETE", "PUT", "PATCH"])
+@users_bp.route("/<int:user_id>", methods=["PATCH"])
 @multi_auth.login_required(role="admin")
-def users_requests(user_id):
-    """Получение информации о любом пользователе и удаление любого пользователя."""
+def edit_user_requests(user_id: int) -> Optional[Tuple, Response]:
+    """Редактирование профиля любого пользователя."""
     if user_id is None:
-        return Errors.REQUIRED_ARGS_MISSING.get()
-    user = User.query.filter_by(id=user_id).first()
-    if user is None:
-        return Errors.USER_NOT_FOUND.get()
-    if request.method == "GET":
-        return Response(data=user.to_dict()).get()
-    elif request.method == "DELETE":
-        if user_id == g.user.id:
-            return Errors.ADMIN_SELF_DELETE_NOT_ALLOWED.get()
+        response = Errors.REQUIRED_ARGS_MISSING.get()
+    else:
+        user = User.query.filter_by(id=user_id).first()
+        if user is None:
+            response = Errors.USER_NOT_FOUND.get()
         else:
-            db.session.delete(user)
-            db.session.commit()
-            return Errors.EMPTY_SUCCESS.get()
-    elif request.method == "PUT":
-        body = request.json
-        login = body.get('login')
-        email = body.get('email')
-        if login is None or email is None:
-            return Errors.REQUIRED_ARGS_MISSING.get()
-        if User.query.filter_by(login=login).first() is not None:
-            return Errors.LOGIN_ALREADY_EXIST.get()
-        if User.query.filter_by(email=email).first() is not None:
-            return Errors.EMAIL_ALREADY_EXIST.get()
-        user.login = login
-        user.email = email
-        db.session.commit()
-        return Errors.EMPTY_SUCCESS.get()
-    elif request.method == "PATCH":
-        body = request.json
-        login = body.get('login')
-        email = body.get('email')
-        if login is None and email is None:
-            return Errors.REQUIRED_ARG_MISSING.get()
-        else:
-            if User.query.filter_by(login=login).first() is not None:
-                return Errors.LOGIN_ALREADY_EXIST.get()
+            body = request.json
+            login = body.get('login')
+            email = body.get('email')
+            if login is None and email is None:
+                response = Errors.REQUIRED_ARG_MISSING.get()
+            elif User.query.filter_by(login=login).first() is not None:
+                response = Errors.LOGIN_ALREADY_EXIST.get()
             elif User.query.filter_by(email=email).first() is not None:
-                return Errors.EMAIL_ALREADY_EXIST.get()
+                response = Errors.EMAIL_ALREADY_EXIST.get()
             else:
                 user.login = login if login is not None else user.login
                 user.email = email if email is not None else user.email
                 db.session.commit()
-                return Response(data=user.to_dict()).get()
+                response = Response(data=user.to_dict()).get()
+    return response
+
+
+@users_bp.route("/<int:user_id>", methods=["GET"])
+@multi_auth.login_required(role="admin")
+def admin_get_user_request(user_id: int) -> Optional[Tuple, Response]:
+    """Получение информации о любом пользователе."""
+    if user_id is None:
+        response = Errors.REQUIRED_ARGS_MISSING.get()
+    else:
+        user = User.query.filter_by(id=user_id).first()
+        if user is None:
+            response = Errors.USER_NOT_FOUND.get()
+        else:
+            response = Response(data=user.to_dict()).get()
+    return response
+
+
+@users_bp.route("/<int:user_id>", methods=["DELETE"])
+@multi_auth.login_required(role="admin")
+def admin_delete_user_request(user_id: int) -> Optional[Tuple, Response]:
+    """Удаление любого пользователя."""
+    if user_id is None:
+        response = Errors.REQUIRED_ARGS_MISSING.get()
+    else:
+        user = User.query.filter_by(id=user_id).first()
+        if user is None:
+            response = Errors.USER_NOT_FOUND.get()
+        elif user_id == g.user.id:
+            response = Errors.ADMIN_SELF_DELETE_NOT_ALLOWED.get()
+        else:
+            db.session.delete(user)
+            db.session.commit()
+            response = Errors.EMPTY_SUCCESS.get()
+    return response
 
 
 @users_bp.route("/", methods=["GET"])
 @multi_auth.login_required(role="admin")
 def admin_search_users():
+    """Поиск пользователй с фильтрацией."""
     login = request.args.get('login')
     email = request.args.get('email')
     page = int(request.args.get('page')) if request.args.get('page') else 1
