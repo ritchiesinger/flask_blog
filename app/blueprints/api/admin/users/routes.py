@@ -3,8 +3,7 @@ from flask import request, g
 from . import bp as users_bp
 from app.helpers import Response, Errors
 from app.blueprints.api.auth import multi_auth
-from app.models import User
-from app import db
+from app.models import User, db
 
 
 @users_bp.route("/<int:user_id>", methods=["GET", "DELETE", "PUT", "PATCH"])

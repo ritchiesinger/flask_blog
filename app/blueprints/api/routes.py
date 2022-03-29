@@ -3,8 +3,7 @@ from flask import g, request
 from . import bp as api_bp
 from app.blueprints.api.auth import multi_auth
 from app.helpers import Response, Errors
-from app.models import User
-from app import db
+from app.models import User, db
 
 
 @api_bp.route('/')

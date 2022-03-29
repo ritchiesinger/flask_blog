@@ -4,8 +4,10 @@ from time import time
 
 from jwt import encode as jwt_encode, decode as jwt_decode, exceptions as jwt_exceptions
 from passlib.apps import custom_app_context as pwd_context
+from flask import current_app
+from flask_sqlalchemy import SQLAlchemy
 
-from app import db, app
+db = SQLAlchemy()
 
 
 class User(db.Model):
@@ -36,14 +38,19 @@ class User(db.Model):
     def verify_password(self, password):
         return pwd_context.verify(password, self.password_hash)
 
-    def generate_token(self, expiration=app.config["TOKEN_EXPIRATION"]):
-        token = jwt_encode({"id": self.id, "exp": time() + expiration}, app.config["SECRET_KEY"], algorithm="HS256")
+    def generate_token(self, expiration=None):
+        expiration = expiration or current_app.config["TOKEN_EXPIRATION"]
+        token = jwt_encode(
+            {"id": self.id, "exp": time() + expiration},
+            current_app.config["SECRET_KEY"],
+            algorithm="HS256"
+        )
         return token
 
     @staticmethod
     def verify_token(token):
         try:
-            decoded_signature = jwt_decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
+            decoded_signature = jwt_decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
         except jwt_exceptions.ExpiredSignatureError:
             return None  # valid token, but expired
         except jwt_exceptions.InvalidSignatureError:

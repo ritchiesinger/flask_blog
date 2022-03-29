@@ -3,8 +3,7 @@ from flask import request
 from . import bp as roles_bp
 from app.helpers import Response, Errors
 from app.blueprints.api.auth import multi_auth
-from app.models import Role, UserRoles
-from app import db
+from app.models import Role, UserRoles, db
 
 
 @roles_bp.route("/role", methods=["POST"])
