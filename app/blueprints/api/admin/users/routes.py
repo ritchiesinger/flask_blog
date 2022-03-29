@@ -14,7 +14,7 @@ from . import bp as users_bp
 
 @users_bp.route("/<int:user_id>", methods=["PATCH"])
 @multi_auth.login_required(role="admin")
-def edit_user_requests(user_id: int) -> Optional[Tuple, Response]:
+def edit_user_requests(user_id: int) -> Optional[Tuple[Response, int]]:
     """Редактирование профиля любого пользователя."""
     if user_id is None:
         response = Errors.REQUIRED_ARGS_MISSING.get()
@@ -42,7 +42,7 @@ def edit_user_requests(user_id: int) -> Optional[Tuple, Response]:
 
 @users_bp.route("/<int:user_id>", methods=["GET"])
 @multi_auth.login_required(role="admin")
-def admin_get_user_request(user_id: int) -> Optional[Tuple, Response]:
+def admin_get_user_request(user_id: int) -> Optional[Tuple[Response, int]]:
     """Получение информации о любом пользователе."""
     if user_id is None:
         response = Errors.REQUIRED_ARGS_MISSING.get()
@@ -57,7 +57,7 @@ def admin_get_user_request(user_id: int) -> Optional[Tuple, Response]:
 
 @users_bp.route("/<int:user_id>", methods=["DELETE"])
 @multi_auth.login_required(role="admin")
-def admin_delete_user_request(user_id: int) -> Optional[Tuple, Response]:
+def admin_delete_user_request(user_id: int) -> Optional[Tuple[Response, int]]:
     """Удаление любого пользователя."""
     if user_id is None:
         response = Errors.REQUIRED_ARGS_MISSING.get()

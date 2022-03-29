@@ -14,7 +14,7 @@ from . import bp as roles_bp
 
 @roles_bp.route("/role", methods=["POST"])
 @multi_auth.login_required(role="admin")
-def add_new_role_request() -> Optional[Tuple, Response]:
+def add_new_role_request() -> Optional[Tuple[Response, int]]:
     """Добавление новой роли."""
     body = request.json
     if request.method == "POST":
@@ -33,7 +33,7 @@ def add_new_role_request() -> Optional[Tuple, Response]:
 
 @roles_bp.route("/role/<int:role_id>", methods=["PATCH"])
 @multi_auth.login_required(role="admin")
-def edit_role_requests(role_id: int) -> Optional[Tuple, Response]:
+def edit_role_requests(role_id: int) -> Optional[Tuple[Response, int]]:
     """Изменение роли."""
     if role_id is None:
         response = Errors.REQUIRED_ARGS_MISSING.get()
@@ -58,7 +58,7 @@ def edit_role_requests(role_id: int) -> Optional[Tuple, Response]:
 
 @roles_bp.route("/role/<int:role_id>", methods=["GET"])
 @multi_auth.login_required(role="admin")
-def get_role_requests(role_id: int) -> Optional[Tuple, Response]:
+def get_role_requests(role_id: int) -> Optional[Tuple[Response, int]]:
     """Получение данных роли."""
     if role_id is None:
         response = Errors.REQUIRED_ARGS_MISSING.get()
@@ -73,7 +73,7 @@ def get_role_requests(role_id: int) -> Optional[Tuple, Response]:
 
 @roles_bp.route("/role/<int:role_id>", methods=["DELETE"])
 @multi_auth.login_required(role="admin")
-def delete_role_requests(role_id: int) -> Optional[Tuple, Response]:
+def delete_role_requests(role_id: int) -> Optional[Tuple[Response, int]]:
     """Удаление роли."""
     if role_id is None:
         response = Errors.REQUIRED_ARGS_MISSING.get()
@@ -90,7 +90,7 @@ def delete_role_requests(role_id: int) -> Optional[Tuple, Response]:
 
 @roles_bp.route("/role_assignment", methods=["POST", "DELETE"])
 @multi_auth.login_required(role="admin")
-def role_assignment_requests() -> Optional[Tuple, Response]:
+def role_assignment_requests() -> Optional[Tuple[Response, int]]:
     """Назначение и снятие роли у пользователя."""
     body = request.json
     response = None

@@ -35,7 +35,7 @@ def user_registration():
 
 @api_bp.route("/user", methods=["GET", "PATCH"])
 @multi_auth.login_required()
-def me_requests() -> Optional[Tuple, Response]:
+def me_requests() -> Optional[Tuple[Response, int]]:
     """Получение профиля текущего пользователя."""
     response = None
     user = g.user
