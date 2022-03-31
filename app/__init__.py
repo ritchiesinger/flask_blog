@@ -4,13 +4,13 @@ from flask import Flask
 from flask_migrate import Migrate
 from flask_cors import CORS
 
-from config import Config
+from config import DevelopmentConfig
 
 migrate = Migrate()
 cors = CORS()
 
 
-def create_app(config_class=Config):
+def create_app(config_class=DevelopmentConfig):
     """Фабрика приложения Flask."""
 
     # pylint: disable=import-outside-toplevel  # Особенность Flask

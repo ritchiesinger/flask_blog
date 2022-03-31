@@ -7,6 +7,7 @@ from typing import Dict, Optional, Union
 
 from jwt import encode as jwt_encode, decode as jwt_decode, exceptions as jwt_exceptions
 from passlib.apps import custom_app_context as pwd_context
+from passlib.context import CryptContext
 from flask import current_app
 from flask_sqlalchemy import SQLAlchemy
 
@@ -42,7 +43,8 @@ class User(db.Model):
 
         :param password: пароль.
         """
-        self.password_hash = pwd_context.encrypt(password)
+        cryptor = CryptContext(schemes=["sha256_crypt", "md5_crypt"])
+        self.password_hash = cryptor.hash(password)
 
     def verify_password(self, password: str) -> bool:
         """Проверка пароля.
