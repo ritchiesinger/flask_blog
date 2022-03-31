@@ -1,3 +1,5 @@
+"""Тесты про регистрацию нового пользователя."""
+
 from app.helpers import HTTPCodes, ErrorTexts, ErrorCodes
 
 
@@ -51,7 +53,10 @@ def test_failed_user_registration_login_already_exist(client, faker):
     faker.random.seed()
     login = "ritchie_singer"
     email = faker.email()
-    response = client.post("/api/registration", json={"login": login, "email": email, "password": "qwerty"})
+    response = client.post(
+        "/api/registration",
+        json={"login": login, "email": email, "password": "qwerty"}
+    )
     assert response.status_code == HTTPCodes.BAD_REQUEST
     assert response.json.get("error_code") == ErrorCodes.LOGIN_ALREADY_EXIST
     assert response.json.get("error_text") == ErrorTexts.LOGIN_ALREADY_EXIST
@@ -62,7 +67,10 @@ def test_failed_user_registration_email_already_exist(client, faker):
     faker.random.seed()
     login = faker.user_name()
     email = "ritchie1222@mail.ru"
-    response = client.post("/api/registration", json={"login": login, "email": email, "password": "qwerty"})
+    response = client.post(
+        "/api/registration",
+        json={"login": login, "email": email, "password": "qwerty"}
+    )
     assert response.status_code == HTTPCodes.BAD_REQUEST
     assert response.json.get("error_code") == ErrorCodes.EMAIL_ALREADY_EXIST
     assert response.json.get("error_text") == ErrorTexts.EMAIL_ALREADY_EXIST
