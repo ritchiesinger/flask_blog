@@ -17,7 +17,7 @@ def test_success_user_registration(client, faker):
 
 
 def test_failed_user_registration_without_login(client, faker):
-    """Успешная регистрация нового пользователя."""
+    """Нельзя зарегистрировать пользователя без логина."""
     faker.random.seed()
     email = faker.email()
     response = client.post("/api/registration", json={"password": "qwerty", "email": email})
@@ -28,7 +28,7 @@ def test_failed_user_registration_without_login(client, faker):
 
 
 def test_failed_user_registration_without_email(client, faker):
-    """Успешная регистрация нового пользователя."""
+    """Нельзя зарегистрировать пользователя без email."""
     faker.random.seed()
     login = faker.user_name()
     response = client.post("/api/registration", json={"login": login, "password": "qwerty"})
@@ -38,7 +38,7 @@ def test_failed_user_registration_without_email(client, faker):
 
 
 def test_failed_user_registration_without_password(client, faker):
-    """Успешная регистрация нового пользователя."""
+    """Нельзя зарегистрировать пользователя без пароля."""
     faker.random.seed()
     login = faker.user_name()
     email = faker.email()

@@ -1,6 +1,7 @@
 """Маршруты связанные с пользователями в API."""
 
-# pylint: disable=no-member  # Особенность асбтрактного представления моделей без существующего ещё приложения
+# pylint: disable=no-member  # Особенность асбтрактного представления моделей без существующего
+# ещё приложения
 
 from typing import Optional, Tuple
 
@@ -14,7 +15,7 @@ from . import bp as users_bp
 
 @users_bp.route("/<int:user_id>", methods=["PATCH"])
 @multi_auth.login_required(role="admin")
-def edit_user_requests(user_id: int) -> Optional[Tuple[Response, int]]:
+def admin_edit_user_requests(user_id: int) -> Optional[Tuple[Response, int]]:
     """Редактирование профиля любого пользователя."""
     if user_id is None:
         response = Errors.REQUIRED_ARGS_MISSING.get()
