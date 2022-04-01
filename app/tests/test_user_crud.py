@@ -32,7 +32,7 @@ def test_fail_edit_profile_login_already_exist(client, user_basic_auth_header):
     """Нельзя изменить логин профиля на тот, который уже зарегистрирован в системе."""
     headers = {}
     headers.update(user_basic_auth_header)
-    response = client.patch(f"/api/user", headers=headers, json={"login": "ritchie_singer"})
+    response = client.patch("/api/user", headers=headers, json={"login": "ritchie_singer"})
     assert response.status_code == HTTPCodes.BAD_REQUEST, response.json
     assert response.json["error_code"] == ErrorCodes.LOGIN_ALREADY_EXIST
     assert response.json["error_text"] == ErrorTexts.LOGIN_ALREADY_EXIST
@@ -42,7 +42,7 @@ def test_fail_edit_profile_email_already_exist(client, user_basic_auth_header):
     """Нельзя изменить email профиля на тот, который уже зарегистрирован в системе."""
     headers = {}
     headers.update(user_basic_auth_header)
-    response = client.patch(f"/api/user", headers=headers, json={"email": "ritchie1222@mail.ru"})
+    response = client.patch("/api/user", headers=headers, json={"email": "ritchie1222@mail.ru"})
     assert response.status_code == HTTPCodes.BAD_REQUEST, response.json
     assert response.json["error_code"] == ErrorCodes.EMAIL_ALREADY_EXIST
     assert response.json["error_text"] == ErrorTexts.EMAIL_ALREADY_EXIST
