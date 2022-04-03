@@ -42,8 +42,9 @@ def admin_edit_user_requests(user_id: int) -> Optional[Tuple[Response, int]]:
 
 
 @users_bp.route("/<int:user_id>", methods=["GET"])
+@users_bp.route("/", methods=["GET"])
 @multi_auth.login_required(role="admin")
-def admin_get_user_request(user_id: int) -> Optional[Tuple[Response, int]]:
+def admin_get_user_request(user_id: int = None) -> Optional[Tuple[Response, int]]:
     """Получение информации о любом пользователе."""
     if user_id is None:
         response = Errors.REQUIRED_ARGS_MISSING.get()
@@ -75,7 +76,7 @@ def admin_delete_user_request(user_id: int) -> Optional[Tuple[Response, int]]:
     return response
 
 
-@users_bp.route("/", methods=["GET"])
+@users_bp.route("/search", methods=["GET"])
 @multi_auth.login_required(role="admin")
 def admin_search_users():
     """Поиск пользователй с фильтрацией."""

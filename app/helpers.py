@@ -1,9 +1,47 @@
 """Вспомогательные инструменты и константы."""
 
+from base64 import b64encode
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Dict, Tuple
 
 from flask import g, jsonify, wrappers
+
+
+class UserData:
+    """Данные пользователя."""
+
+    def __init__(
+        self,
+        user_id: int = None,
+        login: str = None,
+        password: str = None,
+        email: str = None
+    ):
+        self.user_id = user_id
+        self.login = login
+        self.password = password
+        self.email = email
+        self.basic_auth_header = get_basic_auth_header(login, password)
+
+    def set_user_id(self, user_id: int):
+        """Определение идентификатора пользователя."""
+        self.user_id = user_id
+
+    def set_login(self, login: str):
+        """Определение логина."""
+        self.login = login
+
+    def set_password(self, password: str):
+        """Определение логина."""
+        self.password = password
+
+    def set_email(self, email: str):
+        """Определение логина."""
+        self.email = email
+
+    def set_basic_auth_header(self):
+        """Генерация заголовка с Basic Auth для HTTP-запросов."""
+        self.basic_auth_header = get_basic_auth_header(self.login, self.password)
 
 
 @dataclass
@@ -131,3 +169,9 @@ class Errors:
         error_code=ErrorCodes.ROLE_ASSINGMENT_NOT_FOUND,
         error_text=ErrorTexts.ROLE_ASSINGMENT_NOT_FOUND
     )
+
+
+def get_basic_auth_header(login: str, password: str) -> Dict[str, str]:
+    """Получение заголовка авторизации Basic Auth."""
+    basic_auth = b64encode(bytes(f"{login}:{password}", encoding="UTF-8")).decode("utf-8")
+    return {"Authorization": f"Basic {basic_auth}"}
