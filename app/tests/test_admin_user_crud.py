@@ -43,6 +43,30 @@ def test_success_admin_get_user_profile_via_basic_auth(
 
 @epic("API")
 @feature("Административные методы по работе с пользователями")
+@story("Поиск пользователей (Basic Auth)")
+@link(DOC_LINK, name="Административные методы по работе с пользователями")
+@title("Успешный поиск пользователей без параметров")
+def test_success_admin_search_users_via_basic_auth_no_params(client, precondition_test_admin):
+    """Успешный поиск пользователей без параметров."""
+    response = steps_users.admin_search_users(
+        http_client=client,
+        basic_auth_header=precondition_test_admin.basic_auth_header
+    )
+    steps_common.verifier(
+        "Проверки данных из ответа",
+        [
+            Check("status_code", HTTPCodes.SUCCESS, response.status_code),
+            Check("error_code", ErrorCodes.SUCCESS, response.json["error_code"]),
+            Check("error_text", None, response.json["error_text"]),
+            Check("Номер возвращаемой страницы", 1, response.json["data"]["page"]),
+            Check("Элементов на страницу (настройка)", 10, response.json["data"]["per_page"]),
+            Check("Найден хотя бы один пользователь", True, len(response.json["data"]["users"]) > 0)
+        ]
+    )
+
+
+@epic("API")
+@feature("Административные методы по работе с пользователями")
 @story("Получение данных пользователей (Basic Auth)")
 @link(DOC_LINK, name="Административные методы по работе с пользователями")
 @title("Нельзя получить данные пользователя без указания ID")

@@ -2,7 +2,8 @@
 
 from base64 import b64encode
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
+from urllib.parse import urlencode
 
 from flask import g, jsonify, wrappers
 
@@ -175,3 +176,8 @@ def get_basic_auth_header(login: str, password: str) -> Dict[str, str]:
     """Получение заголовка авторизации Basic Auth."""
     basic_auth = b64encode(bytes(f"{login}:{password}", encoding="UTF-8")).decode("utf-8")
     return {"Authorization": f"Basic {basic_auth}"}
+
+
+def generate_url_params_from_dict(params: Optional[Dict[str, str]] = None) -> str:
+    """Формирование строки URL параметров запроса из словаря."""
+    return f"?{urlencode(params)}" if params not in [None, {}] else ""
