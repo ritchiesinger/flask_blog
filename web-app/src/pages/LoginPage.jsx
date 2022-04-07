@@ -1,15 +1,15 @@
 import React, {Component} from 'react'
-import { Navigate } from "react-router-dom"
+import { Navigate, Link } from "react-router-dom"
 import getToken from '../api/Api'
 import Cookies from 'js-cookie'
 import logo from '../assets/reactLogo.png'
-
+import logoCSS from './logo.css'
 
 export default class LoginPage extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      loading: {},
+      loading: false,
       error: {errorCode: null, errorText: null},
       success: null,
       loginForm: {inputLogin: "", inputPassword: ""}
@@ -36,22 +36,31 @@ export default class LoginPage extends Component {
   render() {
     const {errorText} = this.state.error
     const token = Cookies.get('token')
+    const {loading} = this.state
+    const {inputLogin, inputPassword} = this.state.loginForm
     if (token) return <Navigate to="/profile" replace={true} />
     return (
       <div>
         <div className='container'>
           <form className='row pt-5'>
-            <div className="col-6 offset-3 mb-3 text-center mt-5"><img src={logo} style={{width: '200px', height: '200px'}} alt='logo'/></div>
+            <div className="col-6 offset-3 mb-3 text-center mt-5"><img className={loading ? 'rotate' : ''} src={logo} style={{width: '200px', height: '200px'}} alt='logo'/></div>
             <div className="col-4 offset-4 mb-3 mt-5">
               <label htmlFor="inputLogin" className="form-label">Имя учётной записи</label>
-              <input type="login" className="form-control" id="inputLogin" aria-describedby="emailHelp" onChange={this.handleSearchFormChange} />
+              <input type="login" className="form-control" id="inputLogin" aria-describedby="emailHelp" onChange={this.handleSearchFormChange} readOnly={loading}/>
             </div>
             <div className="col-4 offset-4 mb-3">
               <label htmlFor="inputPassword" className="form-label">Пароль</label>
-              <input type="password" className="form-control" id="inputPassword" onChange={this.handleSearchFormChange} />
+              <input type="password" className="form-control" id="inputPassword" onChange={this.handleSearchFormChange} readOnly={loading}/>
             </div>
             <div className='col-4 offset-4'>
-              <div className="btn btn-primary" onClick={this.login}>Войти</div>
+              <button 
+                className="btn btn-primary" 
+                onClick={loading ? () => {} : this.login} 
+                disabled={loading || inputLogin == "" || inputPassword == ""}>
+                  {loading ? <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : null}
+                  {loading ? <span>&nbsp;&nbsp;Загрузка</span> : <span>Войти</span>}
+              </button>
+              <Link to='/registration' onClick={loading ? e => e.preventDefault() : ()=>{}}><div className={`btn link-${loading ? 'secondary' : 'primary'}`}>Создать профиль</div></Link>
             </div>
             {errorText ? 
             <div className='col-4 offset-4'>

@@ -1,20 +1,25 @@
 import axios from 'axios'
 import Cookies from 'js-cookie'
 
-const backEndpoint = "http://localhost:5000/api"
-
 const getTokenRequest = (login, password) => {
-  const requestURL = `${backEndpoint}/token`
+  const requestURL = `api/token`
   const auth = {username: login, password: password}
   console.log(`Получение токена`, requestURL, `С авторизацией`, auth)
-  return axios.get(requestURL, {auth: auth});
+  return axios.get(requestURL, {auth: auth})
 }
 
 const getProfileRequest = (token) => {
-  const requestURL = `${backEndpoint}/user`
+  const requestURL = `api/user`
   const config = {headers: { Authorization: `Bearer ${token}` }}
   console.log(`Получение профиля`, requestURL, `с токеном`, token)
-  return axios.get(requestURL, config);
+  return axios.get(requestURL, config)
+}
+
+const registrationRequest = (login, password, email) => {
+  const requestURL = `api/registration`
+  const body = {login: login, password: password, email: email}
+  console.log(`Создание профиля`, requestURL)
+  return axios.post(requestURL, body)
 }
 
 export const getToken = (component, login, password) => {
@@ -31,7 +36,7 @@ export const getToken = (component, login, password) => {
         Cookies.set('user', {userRoles: data.data.user_roles, userLogin: login})
         console.log(`Получен ответ:`, data)
         component.setState({...component.state,
-          loading: {...component.state.loading, getToken: false},
+          loading: true,
           error: {errorCode: null, errorText: null},
           systems: data.data,
           needReload: false
@@ -49,7 +54,7 @@ export const getToken = (component, login, password) => {
     Cookies.remove('token')
     Cookies.remove('user')
     component.setState({...component.state,
-      loading: {...component.state.loading, getToken: false},
+      loading: false,
       error: {errorCode: error.status, errorText: errorText}
     })
   });
@@ -90,6 +95,39 @@ export const getProfile = (component, token) => {
     component.setState({...component.state,
       loading: {...component.state.loading, getToken: false},
       error: {errorCode: error.response.status, errorText: errorText}
+    })
+  });
+}
+
+export const registration = (component, login, password, email) => {
+  component.setState({
+    ...component.state,
+    loading: true,
+    error: {errorText: null}
+  })
+  registrationRequest(login, password, email)
+    .then(
+      response => {
+        const {data} = response
+        console.log(`Получен ответ:`, data)
+        component.setState({...component.state,
+          loading: false,
+          error: {errorText: null},
+          success: true
+        })
+      }
+    )
+  .catch((error) => {
+    console.log(`Результат запроса:`, error)
+    let errorText
+    if (error.response.status === 400) {
+      errorText = "Не заполнены обязательные поля"
+    } else if (error.response.status === 500) {
+      errorText = "Ошибка сервера!"
+    }
+    component.setState({...component.state,
+      loading: false,
+      error: {errorText: errorText}
     })
   });
 }
