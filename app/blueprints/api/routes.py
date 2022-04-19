@@ -10,7 +10,7 @@ from flask import g, request
 
 from app.blueprints.api.auth import multi_auth
 from app.helpers import Response, Errors
-from app.models import User, db
+from app.models import User, db, UserRoles
 from . import bp as api_bp
 
 
@@ -30,6 +30,9 @@ def user_registration():
     user = User(login=login, email=email)
     user.hash_password(password)
     db.session.add(user)
+    db.session.commit()
+    user_roles = UserRoles(user_id=user.id, role_id=1)  # role_id=1 - Пользователь
+    db.session.add(user_roles)
     db.session.commit()
     return Response(data={"login": user.login, "id": user.id, "email": user.email}).get()
 

@@ -74,7 +74,7 @@ class ErrorTexts:
     """Возможные тексты ошибок."""
     LOGIN_ALREADY_EXIST = "Пользователь с таким login уже зарегистрирован!"
     EMAIL_ALREADY_EXIST = "Пользователь с таким email уже зарегистрирован!"
-    REQUIRED_ARGS_MISSING = "Отсутствуют обязательные аргументы!"
+    REQUIRED_ARGS_MISSING = "Не заполнены обязательные поля!"
     REQUIRED_ARG_MISSING = "Отсутствуют аргументы (должен быть хотя бы один)!"
     USER_NOT_FOUND = "Пользователь с таким id не найден!"
     ADMIN_SELF_DELETE_NOT_ALLOWED = "Этой командой удалить самого себя нельзя!"
