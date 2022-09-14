@@ -4,6 +4,8 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from "react-router-dom";
 import { createRoot } from 'react-dom/client';
+import iconsCss from '../node_modules/bootstrap-icons/font/bootstrap-icons.css' // eslint-disable-line no-unused-vars
+import mainCss from './index.css'
 
 const container = document.getElementById('root');
 const root = createRoot(container);

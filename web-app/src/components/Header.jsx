@@ -1,7 +1,7 @@
 import React, {Component} from 'react'
+import { Link } from "react-router-dom"
 import { getProfile } from '../api/Api'
 import Cookies from 'js-cookie'
-
 
 export default class Header extends Component {
   constructor(props) {
@@ -19,6 +19,7 @@ export default class Header extends Component {
     parentComponent.forceUpdate()
   }
   render() {
+    const {activePage} = this.props
     const user = this.props.user ? this.props.user : {login: null, id: null, roles: []}
     const {roles, login} = user
     return (
@@ -31,11 +32,11 @@ export default class Header extends Component {
             </button>
             <div className="collapse navbar-collapse" id="navbarSupportedContent">
               <div className="navbar-nav me-auto mb-2 mb-lg-0">
-                {roles.includes("admin") ? <span className="nav-link btn" aria-current="page">Пользователи</span> : null}
+                {roles.includes("admin") ? <Link to='/admin_users' style={{ textDecoration: 'none' }}><span className={`nav-link btn ${activePage === 'users' ? ' active' : ''}`} aria-current="page">Пользователи</span></Link> : null}
                 {roles.includes("admin") ? <span className="nav-link btn">Роли</span> : null}
               </div>
               <div className="navbar-nav d-flex">
-                <span className="nav-link btn active">{login}</span>
+                <Link to='/profile' style={{ textDecoration: 'none' }}><span className={`nav-link btn${activePage === 'profile' ? ' active' : ''}`}>{login}</span></Link>
                 <span className="nav-link btn" onClick={this.logOut}>Выйти</span>
               </div>
             </div>

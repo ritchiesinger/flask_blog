@@ -121,7 +121,7 @@ export const registration = (component, login, password, email) => {
     console.log(`Результат запроса:`, error)
     let errorText
     if (error.response.status === 400) {
-      errorText = "Не заполнены обязательные поля"
+      errorText = error.response.data.error_text
     } else if (error.response.status === 500) {
       errorText = "Ошибка сервера!"
     }
