@@ -7,8 +7,8 @@ from typing import Optional, Tuple
 
 from flask import request
 
-from app.helpers import Response, Errors
 from app.blueprints.api.auth import multi_auth
+from app.helpers import Response, Errors
 from app.models import Role, UserRoles, db
 from . import bp as roles_bp
 

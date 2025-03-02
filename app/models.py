@@ -1,15 +1,15 @@
 """Модели БД."""
 
-# pylint: disable=no-member  # Особенность асбтрактного представления моделей без существующего ещё приложения
+# pylint: disable=no-member # Особенность асбтрактного представления моделей без существующего ещё приложения
 
 from time import time
 from typing import Dict, Optional, Union
 
+from flask import current_app
+from flask_sqlalchemy import SQLAlchemy
 from jwt import encode as jwt_encode, decode as jwt_decode, exceptions as jwt_exceptions
 from passlib.apps import custom_app_context as pwd_context
 from passlib.context import CryptContext
-from flask import current_app
-from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
