@@ -1,0 +1,112 @@
+{% from "macros.html" import avatar %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PersonalBlog - {% block title %}{% endblock %}</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
+</head>
+<body class="bg-light d-flex flex-column min-vh-100">
+    <div class="container">
+        <header class="d-flex flex-wrap py-3 mb-3 border-bottom">
+            <div class="d-flex flex-wrap col-md-9">
+                <a href="{{ url_for('blog.index') }}" class="d-flex link-body-emphasis text-decoration-none">
+                    <svg fill="#000000" class="bi me-2" width="40" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0 22.016q0 0.832 0.576 1.408t1.44 0.576h5.984v6.016q0 0.832 0.576 1.408t1.44 0.576h20q0.8 0 1.408-0.576t0.576-1.408v-20q0-0.832-0.576-1.408t-1.408-0.608h-6.016v-5.984q0-0.832-0.576-1.408t-1.408-0.608h-20q-0.832 0-1.44 0.608t-0.576 1.408v20zM4 20v-16h16v4h-9.984q-0.832 0-1.44 0.608t-0.576 1.408v9.984h-4zM12 28v-4h10.016q0.8 0 1.408-0.576t0.576-1.408v-10.016h4v16h-16z"></path>
+                    </svg>
+                    <span class="fs-4">Кружечкин Дмитрий</span>
+                </a>
+                <ul class="navbar-nav justify-content-start ms-4">
+                    {% if current_user.is_authenticated and current_user.is_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.users') }}">Административная панель</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+            <div class="col-md-3 text-end">
+                {% if current_user.is_authenticated %}
+
+                <span class="d-inline-flex align-items-center navbar-text me-2">
+    {{ avatar(current_user.username) }}
+    <span>{{ current_user.username }}</span>
+</span>
+<!--                <span class="navbar-text me-2">{{ current_user.username }}</span>-->
+                <a class="btn btn-primary" href="{{ url_for('auth.logout') }}" data-action="logout">Выйти</a>
+                {% else %}
+                <a class="btn btn-outline-primary" href="{{ url_for('auth.register') }}">Регистрация</a>
+                <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Войти</a>
+                {% endif %}
+            </div>
+        </header>
+        <div class="toast-stack">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+            <div class="toast text-bg-{{ 'danger' if category == 'error' else (category or 'info') }} border-0 auto-close" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">{{ message }}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                </div>
+            </div>
+            {% endfor %}
+            {% endwith %}
+        </div>
+    </div>
+    <main class="container">
+        <div class="d-flex justify-content-between align-items-center">{% block header %}{% endblock %}</div>
+        {% block content %}{% endblock %}
+    </main>
+    <div class="modal fade" id="confirm-modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Подтвердите удаление</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirm-modal-text" class="mb-0">Удалить пост? Действие необратимо.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete">Удалить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="container d-flex flex-wrap justify-content-between align-items-center mt-auto py-3 border-top">
+        <div class="d-flex small text-muted col-md-4">© 2026 Кружечкин Дмитрий</div>
+        <div class="d-flex justify-content-end col-md-8 align-items-center">
+            <span class="small text-muted">Ресурс создан с использованием технологий:</span>
+            <span class="ms-1" data-bs-toggle="tooltip" data-bs-title="Flask">
+                <a href="https://flask.palletsprojects.com/en/stable/" target="_blank" rel="noopener noreferrer" aria-label="Flask">
+                    <svg role="img" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><title>Flask</title><path d="M10.773 2.878c-.013 1.434.322 4.624.445 5.734l-8.558 3.83c-.56-.959-.98-2.304-1.237-3.38l-.06.027c-.205.09-.406.053-.494-.088l-.011-.018-.82-1.506c-.058-.105-.05-.252.024-.392a.78.78 0 0 1 .358-.331l9.824-4.207c.146-.064.299-.063.4.004.106.062.127.128.13.327Zm.68 7c.523 1.97.675 2.412.832 2.818l-7.263 3.7a19.35 19.35 0 0 1-1.81-2.83l8.24-3.689Zm12.432 8.786h.003c.283.402-.047.657-.153.698l-.947.37c.037.125.035.319-.217.414l-.736.287c-.229.09-.398-.059-.42-.2l-.025-.125c-4.427 1.784-7.94 1.685-10.696.647-1.981-.745-3.576-1.983-4.846-3.379l6.948-3.54c.721 1.431 1.586 2.454 2.509 3.178 2.086 1.638 4.415 1.712 5.793 1.563l-.047-.233c-.015-.077.007-.135.086-.165l.734-.288a.302.302 0 0 1 .342.086l.748-.288a.306.306 0 0 1 .341.086l.583.89Z"/></svg>
+                </a>
+            </span>
+            <span class="ms-1" data-bs-toggle="tooltip" data-bs-title="Bootstrap 5.3">
+                <a href="https://getbootstrap.com/docs/5.3" target="_blank" rel="noopener noreferrer" aria-label="Bootstrap 5.3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-bootstrap-fill" viewBox="0 0 16 16">
+                        <path d="M6.375 7.125V4.658h1.78c.973 0 1.542.457 1.542 1.237 0 .802-.604 1.23-1.764 1.23zm0 3.762h1.898c1.184 0 1.81-.48 1.81-1.377 0-.885-.65-1.348-1.886-1.348H6.375z"/>
+                        <path d="M4.002 0a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4V4a4 4 0 0 0-4-4zm1.06 12V3.545h3.399c1.587 0 2.543.809 2.543 2.11 0 .884-.65 1.675-1.483 1.816v.1c1.143.117 1.904.931 1.904 2.033 0 1.488-1.084 2.396-2.888 2.396z"/>
+                    </svg>
+                </a>
+            </span>
+            <span class="ms-1" data-bs-toggle="tooltip" data-bs-title="Алиса AI">
+                <a href="https://ya.ru/alice/" target="_blank" rel="noopener noreferrer" aria-label="Алиса AI">
+                    <svg viewBox="0 0 370 370" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" role="img">
+                        <title>Алиса AI</title>
+                        <path fill-rule="evenodd" d="M0 0h370v370H0z M100.288 244.708c13.281 13.216 48.658 21.152 84.712 21.291 36.053-.139 71.431-8.075 84.712-21.291 32.997-32.834-47.212-158.628-84.671-158.81-37.541.182-117.75 125.976-84.753 158.81"/>
+                    </svg>
+                </a>
+            </span>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='autoclose_alerts.js') }}"></script>
+    <script src="{{ url_for('static', filename='tooltip.js') }}"></script>
+    <script src="{{ url_for('static', filename='confirm_delete.js') }}"></script>
+</body>
+</html>

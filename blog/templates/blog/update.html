@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Редактирование поста{% endblock %}
+{% block header %}<h3>Редактирование поста</h3>{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('blog.index') }}#post-id-{{ post.id }}">Лента</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('blog.view', post_id=post.id) }}">Назад к посту</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Редактирование поста</li>
+    </ol>
+</nav>
+<div class="card mx-auto">
+    <div class="card-body">
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label" for="title">Заголовок</label>
+                <input class="form-control" id="title" name="title" value="{{ request.form['title'] or post.title }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="body">Тело поста</label>
+                <textarea class="form-control" id="body" name="body" rows="8">{{ request.form['body'] or post.body }}</textarea>
+            </div>
+            <button class="btn btn-primary" type="submit">Сохранить</button>
+            <a class="btn btn-secondary" href="{{ url_for('blog.index') }}">Отмена</a>
+        </form>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.css">
+            <script src="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.js"></script>
+            <script src="{{ url_for('static', filename='emoji_list.js') }}"></script>
+            <script src="{{ url_for('static', filename='emoji_picker.js') }}"></script>
+            <script src="{{ url_for('static', filename='md_editor_init.js') }}"></script>
+    </div>
+</div>
+{% endblock %}

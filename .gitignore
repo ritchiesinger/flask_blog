@@ -1,0 +1,36 @@
+# Директории с кэшем байт-кода
+__pycache__/
+
+# Скомпилированные файлы (`.pyc`, `.pyo`, `.pyd`)
+*.py[cod]
+
+# Виртуальные окружения
+.venv
+venv/
+
+# Файлы переменных окружения
+.env
+
+# Директории и файлы популярных IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# Системные файлы
+.DS_Store
+
+# Артефакты сборки и дистрибутивов
+build/
+dist/
+*.egg-info/
+
+# Файлы покрытия и кэши
+.coverage
+*.py,cover
+.cache/
+
+# Контрольные точки Jupyter Notebook
+.ipynb_checkpoints
+/instance/
+/uploads/
+/commands.txt

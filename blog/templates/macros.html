@@ -1,0 +1,5 @@
+{# Переиспользуемые вёрсточные макросы. #}
+
+{% macro avatar(username) -%}
+<span class="avatar">{{ username[:2] | upper }}</span>
+{%- endmacro %}

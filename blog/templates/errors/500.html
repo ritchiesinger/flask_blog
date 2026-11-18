@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1 class="display-1 text-danger">{% block title %}500 — внутренняя ошибка сервера{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<p class="lead">Что-то пошло не так на нашей стороне. Мы уже записали ошибку в журнал — попробуйте повторить действие позже.</p>
+{% endblock %}

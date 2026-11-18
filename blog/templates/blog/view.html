@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Пост "{{ post.title }}"{% endblock %}
+{% block header %}
+<h3>{{ post.title }}
+    {% if current_user.is_authenticated and current_user.id == post.author.id %}
+    <div class="dropdown d-inline">
+        <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Действия с постом" aria-expanded="false">
+            <i class="bi bi-list"></i>
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{{ url_for('blog.update', post_id=post.id) }}">Редактировать</a></li>
+            <li>
+                <form method="post" action="{{ url_for('blog.delete', post_id=post.id) }}" class="d-inline">
+                    <a class="dropdown-item" href="#" data-action="delete_post">Удалить</a>
+                </form>
+            </li>
+        </ul>
+    </div>
+    {% endif %}
+</h3>
+{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('blog.index') }}#post-id-{{ post.id }}">Лента</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Пост ID: {{ post.id }}</li>
+  </ol>
+</nav>
+<article class="card mb-3">
+    <div class="card-body">
+        <div class="text-muted small mb-3">
+            {{ avatar(post.author.username) }}
+            Автор: {{ post.author.username }}, Дата: {{ post.created.strftime('%Y-%m-%d %H:%M') }}</div>
+        <div class="post-body">{{ post.body | markdown | safe }}</div>
+        <hr>
+        <h4 id="comments">Комментарии <span class="badge bg-secondary">{{ comments|length }}</span></h4>
+        {% for comment in comments %}
+        <div class="card mt-3 shadow">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    {{ avatar(comment.author.username) }}
+                    <div>
+                        <strong>{{ comment.author.username }}</strong>
+                        <span class="text-muted small ms-2">{{ comment.created.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ comment.body }}</p>
+                {% if current_user.is_authenticated and current_user.id == comment.author.id %}
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('blog.comment_update', comment_id=comment.id) }}" data-bs-toggle="tooltip" data-bs-title="Редактировать" aria-label="Редактировать"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="{{ url_for('blog.comment_delete', comment_id=comment.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger btn-sm" data-action="delete_comment" data-bs-toggle="tooltip" data-bs-title="Удалить" aria-label="Удалить"><i class="bi bi-trash"></i></button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+          <p>Комментариев пока нет.</p>
+        {% endfor %}
+        {% if current_user.is_authenticated %}
+        <form class="mt-3" method="post" action="{{ url_for('blog.comment_create', post_id=post.id) }}">
+            <textarea class="form-control" name="body" rows="3" required placeholder="Написать комментарий..."></textarea>
+            <div class="d-flex align-items-center position-relative mt-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-action="emoji-toggle" aria-label="Эмодзи">🙂</button>
+                <div class="emoji-picker" data-emoji-panel hidden></div>
+                <button type="submit" class="btn btn-primary ms-auto">Оставить комментарий</button>
+            </div>
+        </form>
+        <script src="{{ url_for('static', filename='emoji_list.js') }}"></script>
+        <script src="{{ url_for('static', filename='emoji_picker.js') }}"></script>
+        {% else %}
+          <p class="mt-3"><a href="{{ url_for('auth.login') }}">Войдите</a>, чтобы оставить комментарий.</p>
+        {% endif %}
+    </div>
+</article>
+{% endblock %}
