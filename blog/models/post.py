@@ -17,7 +17,10 @@ class Post(db.Model):
     title = db.Column(db.String(255), nullable=False)
     body = db.Column(db.Text, nullable=False)
     comment_count = db.column_property(
-        db.select(db.func.count(Comment.id)).where(Comment.post_id == id).scalar_subquery()
+        db.select(db.func.count(Comment.id))
+        .where(Comment.post_id == id)
+        .correlate_except(Comment)
+        .scalar_subquery()
     )
 
     author = db.relationship("User", back_populates="posts")

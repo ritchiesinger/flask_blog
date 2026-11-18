@@ -5,14 +5,17 @@ from flask import request
 from blog.constants import MAX_PER_PAGE
 
 
-def page_from_args() -> int:
+def page_from_args(key: str = "page") -> int:
     """Номер страницы из query-параметра; мусор и значения меньше 1 → страница 1.
+
+    Args:
+        key: Имя query-параметра; по умолчанию — page.
 
     Returns:
         Номер страницы, начиная с 1.
     """
     try:
-        page = int(request.args.get("page", ""))
+        page = int(request.args.get(key, ""))
     except ValueError:
         return 1
     return page if page >= 1 else 1

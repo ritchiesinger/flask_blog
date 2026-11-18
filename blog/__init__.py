@@ -5,6 +5,7 @@ from flask import Flask, render_template
 
 # Модуль с колбэками загрузки пользователя: декораторы регистрируют их на login_manager и jwt при импорте.
 import blog.loaders  # noqa: F401 (импорт ради регистрации)
+from blog.avatar import avatar_color
 from blog.extensions import db, jwt, login_manager, migrate
 from blog.services.markdown import render_markdown
 
@@ -33,6 +34,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     migrate.init_app(app, db)  # включает команду flask db
     login_manager.init_app(app)
     app.jinja_env.filters["markdown"] = render_markdown
+    app.jinja_env.filters["avatar_color"] = avatar_color
     jwt.init_app(app)
 
     @app.errorhandler(500)
@@ -74,6 +76,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     from blog.web.auth import bp as web_auth_bp
     from blog.web.blog import bp as web_blog_bp
     from blog.web.uploads import bp as web_upload_bp
+    from blog.web.user import bp as web_user_bp
 
     app.register_blueprint(api_auth_bp)
     app.register_blueprint(api_posts_bp)
@@ -83,6 +86,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(web_auth_bp)
     app.register_blueprint(web_blog_bp)
     app.register_blueprint(web_upload_bp)
+    app.register_blueprint(web_user_bp)
 
     @app.cli.command("init-db")
     def init_db() -> None:

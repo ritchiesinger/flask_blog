@@ -28,17 +28,21 @@
 </nav>
 <article class="card mb-3">
     <div class="card-body">
-        <div class="text-muted small mb-3">
-            {{ avatar(post.author.username) }}
-            Автор: {{ post.author.username }}, Дата: {{ post.created.strftime('%Y-%m-%d %H:%M') }}</div>
+        <div class="small mb-3">
+            <a class="mb-1 mt-1" href="{{ url_for('user.profile', username=post.author.username) }}" aria-label="Профиль пользователя {{ post.author.username }}">{{ avatar(post.author.username) }}</a>
+            <span class="text-muted">Автор: {{ post.author.username }}, Дата: {{ post.created.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
         <div class="post-body">{{ post.body | markdown | safe }}</div>
         <hr>
-        <h4 id="comments">Комментарии <span class="badge bg-secondary">{{ comments|length }}</span></h4>
+        <span class="h4 me-1" id="comments">Комментарии</span><span class="badge badge-sm bg-secondary">{{ comments|length }}</span>
+<!--        <h4 id="comments" class="display-inline">Комментарии</h4><span class="badge badge-sm bg-secondary">{{ comments|length }}</span>-->
         {% for comment in comments %}
-        <div class="card mt-3 shadow">
+        <div class="card mt-3 shadow" id="comment-{{ comment.id }}">
             <div class="card-header">
                 <div class="d-flex align-items-center">
+                    <a class="mb-1 mt-1" href="{{ url_for('user.profile', username=comment.author.username) }}" aria-label="Профиль пользователя {{ comment.author.username }}">
                     {{ avatar(comment.author.username) }}
+                    </a>
                     <div>
                         <strong>{{ comment.author.username }}</strong>
                         <span class="text-muted small ms-2">{{ comment.created.strftime('%Y-%m-%d %H:%M') }}</span>

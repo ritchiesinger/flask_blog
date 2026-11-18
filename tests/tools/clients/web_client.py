@@ -21,6 +21,7 @@ class WebClient:
         self.comments = _WebComments(client=self)
         self.admin = _Admin(client=self)
         self.uploads = _WebUploads(client=self)
+        self.users = _WebUsers(client=self)
 
 
 class _Admin:
@@ -176,4 +177,30 @@ class _WebUploads:
             WebEndpoints.UPLOADS.UPLOAD,
             data={},
             content_type="multipart/form-data",
+        )
+
+
+class _WebUsers:
+    """Фасад WEB-профиля: сырые ответы без ассертов."""
+
+    def __init__(self, client: WebClient):
+        self._client = client
+
+    def profile(self, username: str, page: int | str | None = None,
+                comment_page: int | str | None = None) -> TestResponse:
+        """GET страницы профиля — публичная.
+
+        Args:
+            username: логин пользователя.
+            page: номер страницы постов; None — параметр не передаётся.
+            comment_page: номер страницы комментариев; None — не передаётся.
+        """
+        query = {}
+        if page is not None:
+            query["page"] = page
+        if comment_page is not None:
+            query["comment_page"] = comment_page
+        return self._client.app_client.get(
+            WebEndpoints.USER.PROFILE.format(username=username),
+            query_string=query or None,
         )

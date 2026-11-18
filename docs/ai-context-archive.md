@@ -647,3 +647,46 @@
   assert_redirect, тест стал на шаг короче и строже по предусловию. setup_test_user_2 остаётся целью удаления со 
   своим клиентом — сессии не смешиваются. Титулы и докстринги не менялись (предусловие то же, изменился способ 
   получения). Верификация: Ruff ноль, 160 passed (2026-11-18).
+
+## ARC-0037 — Профиль пользователя (ночь 2026-11-19)
+
+Постановка: бэклог п. 18 (первая итерация — базовая страница). Закрыт зелёным прогоном.
+
+Сделано:
+1. blog/web/user.py — роут GET /user/<username>; публичный (без login_required); 404 на неизвестный логин.
+2. blog/services/user_service.py — get_profile(username, page, comment_page) → (profile_user, posts, comments);
+   обе ленты через db.paginate(error_out=False), пагинации независимы (page / comment_page), мусор в query
+   нейтрализован хелперами pagination.py.
+3. blog/templates/blog/profile.html — карточка профиля (avatar + логин), лента постов, лента комментариев
+   («В посте <ссылка>», текст-ссылка на якорь #comment-<id>), макрос pagination_nav(pagination, page_param)
+   внутри шаблона, вызов после каждой ленты.
+4. Аватары: раскраска по md5 логина — blog/avatar.py avatar_color(username) → класс палитры
+   avatar-palette-<hash>; оттенок детерминирован, не меняется между перезапусками. Закрыта половина бэклога п. 10.
+5. Доработка пользователя: дропдауны управления в профиле — автору «Редактировать» + «Удалить», гостю и чужому
+   пользователю ничего, админу в чужом профиле только «Удалить» (data-action delete_post/delete_comment,
+   подтверждение через confirm_delete.js). Действие админа упирается в 403 сервиса — задел под бэклог п. 9.
+6. Тесты: tests/tests/test_web_profile.py — 10 тестов; фасад _WebUsers.profile в web_client.py; группа USER
+   в web_endpoints.py (PROFILE: "/user/{username}").
+
+Находки и решения:
+- Auto-correlation: comment_count (column_property + scalar subquery) под joinedload(Comment.post) в
+  list_user_comments терял все FROM → InvalidRequestError. Лечение: .correlate_except(Comment) перед
+  .scalar_subquery(); корреляция с внешним post сохраняется, старые запросы не сломались.
+- TemplateNotFound: шаблон искался по blog/templates/blog/profile.html; сервер исполнял проект flask_blog
+  при venv new_blog — два проекта на машине, файлы проверять в том, где исполняется код.
+- Пустая фикстура: test_admin_sees_delete_only падал из-за отсутствия setup_test_user_post_comment в
+  сигнатуре (лента комментариев честно рендерила «пусто», маркера delete_comment не было). Фикстуры —
+  подсказка, что тест обязан создать.
+- Копипаст-баг в profile.html: aria-labelledby="postActionsMenu-{{ comment.id }}" при id
+  commentActionsMenu-{{ comment.id }} — исправить при следующем касании шаблона (исправление не подтверждено).
+- Независимость пагинаций в тесте — через уникальные маркеры token-{user_id}-{i}: наборы на страницах
+  различаются при любом направлении сортировки.
+- current_user.role == "admin" в шаблоне работает (role — строка), но канон base.html — is_admin;
+  унификация на усмотрение пользователя.
+- Урок: мелкие патчи к шаблону (макрос + вызовы) доставлять одним куском — раздельная доставка привела
+  к потерям при переносе.
+- test_admin_delete_comment_403 — фиксация известного ограничения; после ревизии роли (бэклог п. 9)
+  переписывается на успех + зеркальный тест на удаление поста.
+
+Состояние на закрытие: 170 тестов, Ruff ноль, покрытие 100% (783 stmts, 108 branch, BrPart 0).
+Ручной чек-лист чистый (гость, якорь, 404, независимость пагинаций, устойчивость оттенка).

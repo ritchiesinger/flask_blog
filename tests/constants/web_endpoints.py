@@ -13,6 +13,13 @@ class Auth:
 
 
 @dataclass
+class User:
+    """WEB-эндпоинты профиля пользователя."""
+
+    PROFILE: str = "/user/{username}"
+
+
+@dataclass
 class Posts:
     """WEB-эндпоинты постов."""
 
@@ -55,3 +62,4 @@ class WebEndpoints:
     COMMENTS = Comments
     ADMIN = Admin
     UPLOADS = Uploads
+    USER = User
