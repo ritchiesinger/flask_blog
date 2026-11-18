@@ -1,10 +1,12 @@
 """Тесты веб-интерфейса аутентификации: регистрация, вход и выход.
 
 Запросы идут через WebClient (фасады над FlaskClient) — сессия живёт на клиенте.
-Редиректы проверяются по Location двухшаговым каноном; тексты флешей и признаков
-страниц проверяются на целевых страницах после отдельного запроса.
+Редиректы проверяются асертером ``assert_redirect`` (302 + Location); тексты
+флешей и признаков страниц проверяются на целевых страницах после отдельного
+запроса.
 
-Пользователь, когда он нужен, берётся из фикстуры ``setup_test_user`` — существующая учётная запись в БД.
+Пользователь берётся из фикстуры ``setup_test_user`` (существующая учётная
+запись в БД); авторизованная сессия — из ``setup_logged_in_user``.
 """
 
 from flask.testing import FlaskClient
@@ -12,7 +14,7 @@ from glamor import epic, feature, severity, severity_level, step, story, title
 
 from tests.constants.web_endpoints import WebEndpoints
 from tests.objects.user import UserObject
-from tests.tools.asserters.base_asserters import assert_condition, assert_equal, assert_status_code
+from tests.tools.asserters.base_asserters import assert_condition, assert_redirect, assert_status_code
 from tests.tools.clients.web_client import WebClient
 
 
@@ -34,8 +36,7 @@ class TestRegistration:
         username, password = "newuser", "password123"
         with step("Гость. WEB. Отправка формы регистрации"):
             response = guest.auth.register(username=username, password=password)
-            assert_status_code(expect=302, response=response)
-            assert_equal(expect=WebEndpoints.AUTH.LOGIN, actual=response.headers["Location"], name="Заголовок Location")
+            assert_redirect(expect=WebEndpoints.AUTH.LOGIN, response=response)
         with step("Гость. WEB. Открытие страницы логина с флешем"):
             response = guest.auth.login_form()
             assert_status_code(expect=200, response=response)
@@ -100,19 +101,19 @@ class TestRegistration:
 
     @title("Залогиненный пользователь при попытке открыть регистрацию уходит на главную")
     @severity(severity_level.CRITICAL)
-    def test_register_authenticated_redirects_to_index(self, setup_app_client: FlaskClient,
-                                                       setup_test_user: UserObject):
+    def test_register_authenticated_redirects_to_index(
+            self,
+            setup_app_client: FlaskClient,
+            setup_logged_in_user: UserObject,
+    ):
         """GET /register под сессией не показывает форму — редирект на главную.
 
         Ожидание: 302, Location — «/».
         """
-        user = setup_test_user
-        with step("Пользователь. WEB. Авторизация"):
-            user.web.auth.login(username=user.db_model.username, password=user.password)
+        user = setup_logged_in_user
         with step("Пользователь. WEB. Открытие страницы регистрации под сессией"):
             response = user.web.auth.register_form()
-            assert_status_code(expect=302, response=response)
-            assert_equal(expect="/", actual=response.headers["Location"], name="Заголовок Location")
+            assert_redirect(expect="/", response=response)
 
     @title("Страница регистрации отдаёт форму гостю")
     @severity(severity_level.BLOCKER)
@@ -144,8 +145,7 @@ class TestLogin:
         user = setup_test_user
         with step("Пользователь. WEB. Вход в систему"):
             response = user.web.auth.login(username=user.db_model.username, password=user.password)
-            assert_status_code(expect=302, response=response)
-            assert_equal(expect="/", actual=response.headers["Location"], name="Заголовок Location")
+            assert_redirect(expect="/", response=response)
         with step("Пользователь. WEB. Проверка признака вошедшего на главной"):
             response = user.web.posts.index()
             assert_status_code(expect=200, response=response)
@@ -196,17 +196,13 @@ class TestLogin:
     @story("Выход (Logout)")
     @title("После выхода признаки вошедшего пользователя исчезают")
     @severity(severity_level.CRITICAL)
-    def test_logout(self, setup_app_client: FlaskClient, setup_test_user: UserObject):
+    def test_logout(self, setup_app_client: FlaskClient, setup_logged_in_user: UserObject):
         """Выход сбрасывает сессию: редирект на главную гостя.
 
         Ожидание: до выхода на главной есть «Добавить»; GET /logout — 302
         на «/»; после выхода признак на главной отсутствует.
         """
-        user = setup_test_user
-        with step("Пользователь. WEB. Вход в систему"):
-            response = user.web.auth.login(username=user.db_model.username, password=user.password)
-            assert_status_code(expect=302, response=response)
-            assert_equal(expect="/", actual=response.headers["Location"], name="Заголовок Location")
+        user = setup_logged_in_user
         with step("Пользователь. WEB. Проверка признака вошедшего на главной"):
             response = user.web.posts.index()
             assert_status_code(expect=200, response=response)
@@ -217,8 +213,7 @@ class TestLogin:
             )
         with step("Пользователь. WEB. Выход из системы"):
             response = user.web.auth.logout()
-            assert_status_code(expect=302, response=response)
-            assert_equal(expect="/", actual=response.headers["Location"], name="Заголовок Location")
+            assert_redirect(expect="/", response=response)
         with step("Пользователь. WEB. Проверка отсутствия признака на главной"):
             response = user.web.posts.index()
             assert_status_code(expect=200, response=response)
@@ -231,16 +226,16 @@ class TestLogin:
     @story("Вход (Login)")
     @title("Залогиненный пользователь при попытке открыть логин уходит на главную")
     @severity(severity_level.CRITICAL)
-    def test_login_authenticated_redirects_to_index(self, setup_app_client: FlaskClient,
-                                                    setup_test_user: UserObject):
+    def test_login_authenticated_redirects_to_index(
+            self,
+            setup_app_client: FlaskClient,
+            setup_logged_in_user: UserObject,
+    ):
         """GET /login под сессией не показывает форму — редирект на главную.
 
         Ожидание: 302, Location — «/».
         """
-        user = setup_test_user
-        with step("Пользователь. WEB. Авторизация"):
-            user.web.auth.login(username=user.db_model.username, password=user.password)
+        user = setup_logged_in_user
         with step("Пользователь. WEB. Открытие страницы логина под сессией"):
             response = user.web.auth.login_form()
-            assert_status_code(expect=302, response=response)
-            assert_equal(expect="/", actual=response.headers["Location"], name="Заголовок Location")
+            assert_redirect(expect="/", response=response)

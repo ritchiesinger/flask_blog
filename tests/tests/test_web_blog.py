@@ -8,7 +8,7 @@ from blog.extensions import db
 from blog.models import Post
 from tests.constants.web_endpoints import WebEndpoints
 from tests.objects.user import UserObject
-from tests.tools.asserters.base_asserters import assert_condition, assert_equal, assert_status_code
+from tests.tools.asserters.base_asserters import assert_condition, assert_equal, assert_redirect, assert_status_code
 from tests.tools.asserters.soft_asserters import SoftAssert
 from tests.tools.clients.web_client import WebClient
 
@@ -60,8 +60,7 @@ class TestCreate:
             assert_status_code(expect=200, response=response)
         with step("Пользователь. WEB. Отправка формы создания поста"):
             response = user.web.posts.create(title="Новый пост", body="Тело поста")
-            assert_status_code(expect=302, response=response)
-            assert_equal(expect="/", actual=response.headers["Location"], name="Заголовок Location")
+            assert_redirect(expect="/", response=response)
         with step("Пользователь. WEB. Проверка флеша на главной"):
             response = user.web.posts.index()
             assert_status_code(expect=200, response=response)
@@ -246,12 +245,7 @@ class TestUpdate:
             )
         with step("Пользователь. WEB. Отправка формы редактирования"):
             response = user.web.posts.update(post_id=post["id"], title="Обновлённый заголовок", body="Обновлённое тело")
-            assert_status_code(expect=302, response=response)
-            assert_condition(
-                condition=response.headers["Location"] == f"/{post['id']}",
-                allure_step_name="Редирект ведёт на страницу поста",
-                error_text="После правки редирект ведёт не на страницу поста!",
-            )
+            assert_redirect(expect=f"/{post['id']}", response=response)
         with step("Пользователь. WEB. Проверка флеша на странице поста"):
             response = user.web.posts.view(post_id=post["id"])
             assert_status_code(expect=200, response=response)
@@ -419,13 +413,7 @@ class TestDelete:
             user.web.auth.login(username=user.db_model.username, password=user.password)
         with step("Пользователь. WEB. Удаление поста POST-ом"):
             response = user.web.posts.delete(post_id=post["id"])
-            assert_status_code(expect=302, response=response)
-
-            assert_condition(
-                condition=response.headers["Location"] == "/",
-                allure_step_name="Редирект ведёт на главную",
-                error_text="После удаления редирект ведёт не на главную!",
-            )
+            assert_redirect(expect="/", response=response)
         with step("Пользователь. WEB. Проверка флеша на главной"):
             response = user.web.posts.index()
             assert_status_code(expect=200, response=response)

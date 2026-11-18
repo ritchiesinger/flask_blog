@@ -12,6 +12,7 @@ from blog.constants import Roles
 from blog.extensions import db
 from blog.models import User
 from tests.objects.user import UserObject
+from tests.tools.asserters.base_asserters import assert_redirect
 
 fake = Faker()
 
@@ -42,12 +43,12 @@ def create_user(
             db.session.add(user)
             db.session.commit()
             db.session.refresh(user)  # материализуем все скаляры после expire_on_commit
-            db.session.expunge(user)  # db_model живёт в тестах детачнутым: скаляры читаемы, связи — нет
             attach(
                 body=dumps(user.to_dict(), indent=2),
                 name="Атрибуты созданного пользователя",
                 attachment_type=attachment_type.JSON,
             )
+            db.session.expunge(user)  # db_model живёт в тестах детачнутым: скаляры читаемы, связи — нет
             return UserObject(client=app_client, db_model=user, password=password)
 
 
@@ -79,3 +80,14 @@ def setup_admin_user(setup_app: Flask, setup_app_client: FlaskClient) -> UserObj
         password=password,
         role=Roles.ADMIN,
     )
+
+
+@fixture
+@title("Пользователь. WEB. Авторизован")
+def setup_logged_in_user(setup_test_user: UserObject) -> UserObject:
+    """Открывает WEB-сессию пользователя через форму логина."""
+    user = setup_test_user
+    with step("Пользователь. WEB. Вход в систему"):
+        response = user.web.auth.login(username=user.db_model.username, password=user.password)
+        assert_redirect(expect="/", response=response)
+    return user

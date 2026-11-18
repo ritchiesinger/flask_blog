@@ -11,7 +11,7 @@ from glamor import epic, feature, step, story, title
 from blog.models.user import User
 from tests.constants.web_endpoints import WebEndpoints
 from tests.objects.user import UserObject
-from tests.tools.asserters.base_asserters import assert_condition, assert_equal, assert_status_code
+from tests.tools.asserters.base_asserters import assert_condition, assert_redirect, assert_status_code
 from tests.tools.clients.web_client import WebClient
 
 MENU_ITEM = "Административная панель"
@@ -30,33 +30,29 @@ class TestAccessControl:
         """Без сессии GET списка возвращает 302 на логин."""
         with step("WEB. Запрос списка пользователей без сессии"):
             response = WebClient(setup_app_client).admin.users()
-            assert_status_code(expect=302,response=response)
+            assert_status_code(expect=302, response=response)
             assert_condition(
-                condition=response.headers["Location"].startswith(WebEndpoints.AUTH.LOGIN),
+                condition=response.headers.get("Location", "").startswith(WebEndpoints.AUTH.LOGIN),
                 allure_step_name="Редирект ведёт на страницу логина",
                 error_text=f"Ожидался редирект на логин, получено: {str(response.headers.get('Location'))}",
             )
 
     @story("Просмотр списка пользователей")
     @title("WEB-роут на получение списка пользователей для не-администратора не существует (404)")
-    def test_list_hidden_for_regular_user(self, setup_test_user: UserObject):
+    def test_list_hidden_for_regular_user(self, setup_logged_in_user: UserObject):
         """Не-админ под сессией получает 404: админ-поверхность неотличима от несуществующей."""
-        user = setup_test_user
-        with step("Пользователь. WEB. Авторизация"):
-            user.web.auth.login(username=user.db_model.username, password=user.password)
+        user = setup_logged_in_user
         with step("Пользователь. WEB. Запрос списка пользователей"):
-            response = setup_test_user.web.admin.users()
+            response = user.web.admin.users()
             assert_status_code(expect=404, response=response)
 
     @story("Удаление пользователя")
     @title("WEB-роут на удаление пользователя для не-администратора не существует (404)")
-    def test_delete_hidden_for_regular_user(self, setup_test_user: UserObject, setup_test_user_2: UserObject):
+    def test_delete_hidden_for_regular_user(self, setup_logged_in_user: UserObject, setup_test_user_2: UserObject):
         """POST удаления от не-админа — 404, даже с корректным id цели."""
-        user = setup_test_user
-        with step("Пользователь. WEB. Авторизация"):
-            user.web.auth.login(username=user.db_model.username, password=user.password)
+        user = setup_logged_in_user
         with step("Пользователь. WEB. Попытка удаления пользователя"):
-            response = setup_test_user.web.admin.delete_user(user_id=setup_test_user_2.db_model.id)
+            response = user.web.admin.delete_user(user_id=setup_test_user_2.db_model.id)
             assert_status_code(expect=404, response=response)
 
 
@@ -107,12 +103,7 @@ class TestAdminUsers:
             )
         with step("Администратор. WEB. Удаление пользователя"):
             response = admin.web.admin.delete_user(user_id=user.db_model.id)
-            assert_status_code(expect=302, response=response)
-            assert_equal(
-                expect=WebEndpoints.ADMIN.USERS,
-                actual=response.headers["Location"],
-                name="Заголовок Location",
-            )
+            assert_redirect(expect=WebEndpoints.ADMIN.USERS, response=response)
         with step("Администратор. WEB. Флеш об успехе"):
             response = admin.web.admin.users()
             assert_status_code(expect=200, response=response)
@@ -177,8 +168,7 @@ class TestAdminMenu:
             )
         with step("Администратор. WEB. Выход из системы"):
             response = admin.web.auth.logout()
-            assert_status_code(expect=302, response=response)
-            assert_equal(expect="/", actual=response.headers["Location"], name="Заголовок Location")
+            assert_redirect(expect="/", response=response)
         with step("Пользователь. WEB. Авторизация"):
             user.web.auth.login(username=user.db_model.username, password=user.password)
         with step("Пользователь. WEB. Главная страница"):

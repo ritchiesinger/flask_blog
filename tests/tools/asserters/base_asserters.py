@@ -73,3 +73,20 @@ def assert_status_code(expect: int, response: TestResponse, soft_assert: bool = 
         error_text=msg,
         soft_assert=soft_assert
     )
+
+
+def assert_redirect(expect: str, response: TestResponse, soft_assert: bool = False) -> Callable | None:
+    """Проверка редиректа: код ответа 302 и заголовок Location равен ожидаемому пути.
+
+    :param expect: Ожидаемый адрес редиректа (значение заголовка Location).
+    :param response: Объект ответа.
+    :param soft_assert: Позволяет проводить "мягкую проверку" в связке с классом SoftAssert.
+    """
+    actual = response.headers.get("Location", "")
+    step_name = f"Редирект. Ожидание: 302 -> {expect}. Факт: {response.status_code} -> {actual}"
+    return assert_condition(
+        condition=response.status_code == 302 and actual == expect,
+        allure_step_name=step_name,
+        error_text=step_name + "!",
+        soft_assert=soft_assert,
+    )
