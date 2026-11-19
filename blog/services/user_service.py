@@ -5,13 +5,13 @@ from collections.abc import Callable
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy.orm import joinedload
 
-from blog.constants import POSTS_PER_PAGE, PROFILE_TAB_COMMENTS, PROFILE_TAB_POSTS
+from blog.constants import POSTS_PER_PAGE, PROFILE_TAB_COMMENTS, PROFILE_TAB_POSTS, Roles, role_includes
 from blog.extensions import db
 from blog.models.comment import Comment
 from blog.models.post import Post
 from blog.models.user import User
 
-from .base_errors import NotFoundError
+from .base_errors import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 
 
 def get_user_by_username(username: str) -> User:
@@ -30,6 +30,101 @@ def get_user_by_username(username: str) -> User:
     if user is None:
         raise NotFoundError(f"User '{username}' doesn't exist.")
     return user
+
+
+def get_user_by_id(user_id: int) -> User:
+    """Возвращает пользователя по идентификатору.
+
+    Args:
+        user_id: Идентификатор пользователя.
+
+    Returns:
+        Модель пользователя.
+
+    Raises:
+        NotFoundError: Пользователь не существует.
+    """
+    user = db.session.get(User, user_id)
+    if user is None:
+        raise NotFoundError(f"User #{user_id} doesn't exist.")
+    return user
+
+
+def change_role(user_id: int, new_role: str, *, actor: User) -> User:
+    """Меняет роль пользователя. Доступно только SuperAdministrator.
+
+    Поверхность смены роли — только USER <-> ADMIN: SUPERADMIN не выдаётся и не снимается
+    через интерфейсы (роль уникальна, единственный её канал — CLI, → ARC-0041). Свою роль
+    супер-админ поменять не может.
+
+    Args:
+        user_id: Идентификатор пользователя, чья роль меняется.
+        new_role: Новая роль (Roles.USER или Roles.ADMIN).
+        actor: Действующий пользователь; смена роли — полномочие SUPERADMIN.
+
+    Returns:
+        Обновлённая модель пользователя.
+
+    Raises:
+        ForbiddenError: Актёр не супер-админ или меняет собственную роль.
+        BadRequestError: Новая роль вне разрешённой поверхности (USER/ADMIN).
+        NotFoundError: Пользователь не существует.
+    """
+    if not role_includes(actor.role, Roles.SUPERADMIN):
+        raise ForbiddenError("Смену ролей выполняет только SuperAdministrator")
+    if actor.id == user_id:
+        raise ForbiddenError("Свою роль менять нельзя")
+    if new_role not in _CHANGEABLE_ROLES:
+        raise BadRequestError(f"Роль '{new_role}' недоступна для назначения")
+    user = get_user_by_id(user_id)
+    user.role = new_role
+    db.session.commit()
+    return user
+
+
+_CHANGEABLE_ROLES = frozenset((Roles.USER, Roles.ADMIN))
+
+
+def promote_to_superadmin(username: str) -> User:
+    """Выдаёт роль SUPERADMIN пользователю. Единственный канал выдачи супер-роли (CLI).
+
+    Роль уникальна по построению: персональный блог принадлежит одному хозяину.
+    Сценарий смены хозяина — через CLI: удалить старого супер-админа, выдать роль новому.
+
+    Args:
+        username: Логин пользователя.
+
+    Returns:
+        Обновлённая модель пользователя.
+
+    Raises:
+        NotFoundError: Пользователь не существует.
+        ConflictError: SuperAdministrator уже существует.
+    """
+    existing = db.session.scalar(db.select(User).filter_by(role=Roles.SUPERADMIN))
+    if existing is not None:
+        raise ConflictError(f"SuperAdministrator already exists: '{existing.username}'.")
+    user = get_user_by_username(username)
+    user.role = Roles.SUPERADMIN
+    db.session.commit()
+    return user
+
+
+def delete_user(user_id: int) -> None:
+    """Удаляет пользователя без проверки прав (CLI — читерский слой).
+
+    Посты и комментарии уходят каскадом на уровне БД; загруженные картинки
+    остаются до чистки clean-uploads.
+
+    Args:
+        user_id: Идентификатор пользователя.
+
+    Raises:
+        NotFoundError: Пользователь не существует.
+    """
+    user = get_user_by_id(user_id)
+    db.session.delete(user)
+    db.session.commit()
 
 
 def list_user_posts(user_id: int, page: int = 1, per_page: int = POSTS_PER_PAGE) -> Pagination:

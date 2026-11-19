@@ -10,7 +10,8 @@ from flask.cli import with_appcontext
 from blog.constants import Roles
 from blog.extensions import db
 from blog.models import Post, User
-from blog.services import uploads_service
+from blog.services import uploads_service, user_service
+from blog.services.base_errors import ConflictError, NotFoundError
 
 
 @click.command("make-admin")
@@ -57,6 +58,56 @@ def create_admin(username: str, password: str):
 
 
 create_admin = cast(click.Command, create_admin)
+
+
+@click.command("make-superadmin")
+@click.argument("username")
+@with_appcontext
+def make_superadmin(username: str):
+    """Выдаёт пользователю роль SuperAdministrator.
+
+    Роль уникальна: если SuperAdministrator уже существует, команда откажется.
+    Смена хозяина блога — через CLI: удалить текущего супер-админа
+    (delete-user), затем выдать роль новому.
+
+    Args:
+        username: Логин пользователя, который станет SuperAdministrator.
+    """
+    try:
+        user_service.promote_to_superadmin(username)
+    except NotFoundError:
+        click.echo(f"Пользователь {username} не найден!")
+        return
+    except ConflictError as error:
+        click.echo(str(error))
+        return
+    click.echo(f"{username} теперь SuperAdministrator (role={Roles.SUPERADMIN})")
+
+
+make_superadmin = cast(click.Command, make_superadmin)
+
+
+@click.command("delete-user")
+@click.argument("username")
+@with_appcontext
+def delete_user(username: str):
+    """Удаляет пользователя целиком: посты и комментарии уходят каскадом БД.
+
+    Загруженные картинки остаются до чистки clean-uploads.
+
+    Args:
+        username: Логин удаляемого пользователя.
+    """
+    try:
+        user = user_service.get_user_by_username(username)
+        user_service.delete_user(user.id)
+    except NotFoundError:
+        click.echo(f"Пользователь {username} не найден!")
+        return
+    click.echo(f"Пользователь {username} удалён.")
+
+
+delete_user = cast(click.Command, delete_user)
 
 
 @click.command("clean-uploads")

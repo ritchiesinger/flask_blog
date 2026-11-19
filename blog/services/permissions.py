@@ -2,11 +2,12 @@
 
 Единственное место, где описано, кто и что может делать с сущностями: автор — любое действие со своим;
 администратору разрешено только удаление чужого (редактирование остаётся авторским); остальным — ничего.
+SUPERADMIN наследует полномочия ADMIN по иерархии ролей (→ ARC-0041).
 """
 
 from enum import Enum
 
-from blog.constants import Roles
+from blog.constants import Roles, role_includes
 from blog.models.user import User
 
 from .base_errors import ForbiddenError
@@ -39,6 +40,6 @@ def ensure_allowed(author_id: int, *, actor: User, action: Action, subject: str)
     """
     if actor.id == author_id:
         return
-    if actor.role == Roles.ADMIN and action in _ADMIN_MAY:
+    if role_includes(actor.role, Roles.ADMIN) and action in _ADMIN_MAY:
         return
     raise ForbiddenError(f"Вы не являетесь автором этого {subject}!")

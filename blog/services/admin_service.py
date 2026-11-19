@@ -5,7 +5,8 @@ from flask_sqlalchemy.pagination import Pagination
 from blog.constants import USERS_PER_PAGE
 from blog.extensions import db
 from blog.models import User
-from blog.services.base_errors import ForbiddenError, NotFoundError
+from blog.services import user_service
+from blog.services.base_errors import ForbiddenError
 
 
 def list_users(page: int = 1, per_page: int = USERS_PER_PAGE) -> Pagination:
@@ -26,6 +27,10 @@ def list_users(page: int = 1, per_page: int = USERS_PER_PAGE) -> Pagination:
 def delete_user(user_id: int, actor: User) -> None:
     """Удаляет пользователя по идентификатору.
 
+    Гвард администратора и запрет самоудаления живут здесь; само удаление —
+    в user_service.delete_user (CLI зовёт его без гвардов: читерский слой,
+    → ARC-0041).
+
     Args:
         user_id: Идентификатор удаляемого пользователя.
         actor: Пользователь, выполняющий операцию; должен быть
@@ -38,12 +43,6 @@ def delete_user(user_id: int, actor: User) -> None:
     """
     if not actor.is_admin:
         raise ForbiddenError("Требуются права администратора.")
-
-    user = db.session.get(User, user_id)
-    if user is None:
-        raise NotFoundError("Пользователь не найден.")
-    if user.id == actor.id:
+    if user_id == actor.id:
         raise ForbiddenError("Нельзя удалить самого себя.")
-
-    db.session.delete(user)
-    db.session.commit()
+    user_service.delete_user(user_id)

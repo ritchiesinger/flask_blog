@@ -26,3 +26,27 @@ class Roles:
 
     USER = "user"
     ADMIN = "admin"
+    SUPERADMIN = "superadmin"
+
+
+# Иерархия ролей (→ ARC-0041): область роли включает все перечисленные в ней роли.
+# SUPERADMIN наследует все полномочия ADMIN плюс собственные. Единственное место
+# описания иерархии: новые проверки ролей — только через role_includes.
+ROLE_SCOPES: dict[str, frozenset[str]] = {
+    Roles.USER: frozenset((Roles.USER,)),
+    Roles.ADMIN: frozenset((Roles.USER, Roles.ADMIN)),
+    Roles.SUPERADMIN: frozenset((Roles.USER, Roles.ADMIN, Roles.SUPERADMIN)),
+}
+
+
+def role_includes(role: str, required: str) -> bool:
+    """Проверяет, что роль включает требуемую роль по иерархии.
+
+    Args:
+        role: Роль пользователя.
+        required: Требуемая роль.
+
+    Returns:
+        True, если пользователь с ролью role проходит проверку required.
+    """
+    return required in ROLE_SCOPES[role]

@@ -22,9 +22,23 @@
 {% endif %}
 {% endmacro %}
 <div class="card mb-4">
-    <div class="card-body d-flex align-items-center">
-        {{ avatar(profile_user.username) }}
-        <h4 class="mb-0">{{ profile_user.username }}</h4>
+    <div class="card-body">
+        <div class="d-flex align-items-center">
+            {{ avatar(profile_user.username) }}
+            <h4 class="mb-0">{{ profile_user.username }}</h4>
+            <span class="badge {{ role_badges[profile_user.role] }} ms-2" style="line-height: 1.4">{{ profile_user.role }}</span>
+        </div>
+        {% if can_change_role %}
+        <form method="post" action="{{ url_for('user.change_role', username=profile_user.username) }}" class="d-flex gap-2 mt-3">
+            Изменить роль:
+            <select class="form-select form-select-sm w-auto" name="role" aria-label="Новая роль пользователя {{ profile_user.username }}">
+                {% for role in available_roles %}
+                <option value="{{ role }}">{{ role }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm" data-action="change_role">Изменить</button>
+        </form>
+        {% endif %}
     </div>
 </div>
 <ul class="nav nav-tabs">
@@ -41,7 +55,7 @@
     <article class="card mb-2">
         <div class="card-body">
             <h6 class="card-title mb-1" id="post-id-{{ post.id }}">
-                {% if (current_user.is_authenticated and current_user.id == post.author.id) or current_user.role == "admin" %}
+                {% if (current_user.is_authenticated and current_user.id == post.author.id) or current_user.is_admin %}
                 <div class="dropdown d-inline me-1">
                     <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="postActionsMenu-{{ post.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-list"></i>
@@ -74,7 +88,7 @@
     {% for comment in pagination.items %}
     <div class="card mb-2">
         <div class="card-body">
-            {% if (current_user.is_authenticated and current_user.id == comment.author.id) or current_user.role == "admin" %}
+            {% if (current_user.is_authenticated and current_user.id == comment.author.id) or current_user.is_admin %}
                 <div class="dropdown d-inline me-1">
                     <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="commentActionsMenu-{{ comment.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-list"></i>

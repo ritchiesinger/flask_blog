@@ -20,7 +20,8 @@
   Порядок декораторов: @api_errors сверху.
 - Исключение: /api/token отвечает 401 напрямую dict (нет доменных исключений).
 - Константы — blog/constants.py: POSTS_PER_PAGE = 5, COMMENTS_PER_PAGE = 10, USERS_PER_PAGE = 20,
-  MAX_PER_PAGE = 50, Roles (USER, ADMIN), PROFILE_TAB_POSTS/PROFILE_TAB_COMMENTS/PROFILE_TABS.
+  MAX_PER_PAGE = 50, Roles (USER, ADMIN, SUPERADMIN), ROLE_SCOPES и role_includes (иерархия ролей —
+  единственная точка истины; → ARC-0041), PROFILE_TAB_POSTS/PROFILE_TAB_COMMENTS/PROFILE_TABS.
   Строки ролей в коде не используются — только константы.
 - pyproject: requires-python >=3.15; ruff — line-length 120, py315, E/F/I/UP/B/Q/D, pydocstyle google,
   ignore-decorators ["wraps"]; coverage — branch=true, source=["blog"].
@@ -33,8 +34,11 @@
   Декоратор role_required(*roles); User.is_admin существует, но проверка идёт через role in roles.
 - loaders.py: @login_manager.user_loader + @jwt.user_lookup_loader; регистрация при импорте — фабрика делает
   `import blog.loaders  # noqa: F401` ради декораторов. Файл живой, НЕ удалять (→ ARC-0009).
-- CLI — все в blog/cli.py: `flask make-admin`, `flask create-admin`, `flask clean-uploads`
-  (чистка сирот uploads, → ARC-0033).
+- CLI — все в blog/cli.py: `flask make-admin`, `flask create-admin`, `flask clean-uploads` (чистка сирот
+  uploads, → ARC-0033), `flask make-superadmin` (отказ, если супер-админ уже существует; смена хозяина —
+  delete-user, затем make-superadmin), `flask delete-user` (→ ARC-0041).
+- Новые CLI-команды регистрируются add_command в фабрике приложения: invoke_cli в тестах зовёт click
+  напрямую, живой Flask без регистрации команду не видит (→ ARC-0041).
 - create-admin: дубль имени — «уже существует», пароль не перезаписывается.
 - auth_service: authenticate / register_user; ошибки — исключениями (пустое имя или пароль короче 4 символов →
   BadRequestError; дубль → ConflictError). POST /api/register → 201 {"user": {...}}; username strip — пустая → 400.
@@ -48,6 +52,12 @@
 - WEB (blog/web/admin.py): GET /admin/users, POST /admin/users/<id>/delete; @login_required + @web_errors.
   Гость → 302; не-админ → 404 (не подсказывать скрытые роуты); админ → 200; самоудаление → 403; нет id → 404.
   Расхождение WEB/API — осознанное (API честно 403, WEB прячет 404).
+- Роли (→ ARC-0041): SUPERADMIN уникален, выдаётся/снимается только через CLI; смена USER↔ADMIN — только
+  супер-админом, себе нельзя (403). API PATCH /api/users/<id> (карта 401→403→400→404→200, повтор
+  идемпотентен; супер-админ проходит существующие админ-эндпоинты по иерархии); WEB POST
+  /user/<username>/role (302 + флеш «Роль изменена на Administrator.», контролы — dropdown сырых ролей +
+  «Изменить» + confirm-модалка — видит только супер-админ на чужом профиле; не-супер прямой POST → 404,
+  гость → 302). Бейджи ролей в профиле и админке. В тестах супер-админ — create_user(role=Roles.SUPERADMIN).
 - Фирменные ошибки: errorhandler(404)/(500) в фабрике + errors/404.html, errors/500.html;
   один 404-хэндлер ловит и роутинг, и NotFoundError админки.
 - Хедер: пункт «Административная панель» только при is_authenticated and is_admin; меню для остальных пустое
@@ -91,9 +101,11 @@
   - autoclose_alerts.js — тосты .auto-close: появление через .show (re-flow хак offsetWidth), через 5 с снятие .show
     и удаление из DOM через 400 мс; уход по CSS-transition;
   - tooltip.js — bootstrap.Tooltip по `[data-bs-toggle="tooltip"]`;
-  - confirm_delete.js — #confirm-modal: разметка в base.html (data-bs-backdrop="static"; Escape закрывает модалку —
-    осознанно, решение по итогам ручного тестирования); data-action (delete_post/user/comment) → CONFIRM_TEXTS с
-    FALLBACK_TEXT, форма через closest('form'), submit по кнопке модалки,
+  - confirm_action.js (→ ARC-0041, бывший confirm_delete.js) — #confirm-modal: разметка в base.html
+    (data-bs-backdrop="static"; Escape закрывает модалку — осознанно, решение по итогам ручного тестирования);
+    data-action (delete_post/user/comment, change_role) → CONFIRM_ACTIONS: заголовок, текст и подпись кнопки
+    перезаписываются при каждом открытии (статичный текст base.html — заглушка); FALLBACK_* для действий без
+    записи; форма через closest('form'), submit по кнопке модалки,
     открытие через Modal.getOrCreateInstance(modalEl).show(btn);
   - expand_post.js — пересчёт «fits» для .post-clip: замер scrollHeight от 9rem (rem из computed style), развёрнутый
     пост не мерится; слушатели change/resize + стартовый вызов;
@@ -160,6 +172,9 @@
 - UserObject: db_model, password, api_token (ленивое свойство — единственное место с ассертами вне теста),
   refresh_api_token(). user.api = ApiUserFacade, user.web = WebClient. Гостевые действия — чистые Api/WebClient;
   клиенты возвращают сырой ответ, без ассертов.
+- Api — фасад с разделами (api.users.list/delete/change_role(token=...)); ApiUserFacade — методы от имени
+  пользователя (change_user_role, ...), раздела .users у него НЕТ (→ ARC-0041). WebClient —
+  .auth/.posts/.comments/.admin/.uploads/.users (.users.profile, .users.change_role).
 - Фасад пользователя открывает все действия своей роли, включая пассивные чтения без токена (get_posts_list,
   get_comments_list); тонкая ретрансляция — контракт, не дублирование (→ ARC-0035).
 - Канон фикстур: ORM-объекты — commit → refresh → attach/to_dict → expunge; после expunge — только скаляры
@@ -171,8 +186,9 @@
   фикстура описывает результат в титуле, шаги — по общему канону (→ ARC-0034).
 - api.py: BaseClient (_post/_patch/_get/_delete; _get принимает query); фильтр «if value» — None и пустая строка
   не уходят в тело (осознанный контракт).
-- Эндпоинты — dataclass-константы, шаблонные пути через .format(...).
-  Ассертеры: assert_status_code, assert_condition, assert_redirect, SoftAssert.
+- Эндпоинты — dataclass-константы, шаблонные пути через .format(...). WebEndpoints.USER.CHANGE_ROLE.
+  Ассертеры: assert_status_code, assert_condition, assert_redirect, SoftAssert (чеки внутрь SoftAssert —
+  только с soft_assert=True, иначе исполняются сразу и вернут None; → ARC-0041).
 - CLI: invoke_cli(app, command, args, hidden=()) — клик зовётся только через него. CLI — интерфейс, НЕ юнит.
   Юниты: tests/unit_tests/ — без Allure-обвязки; ветки, недостижимые через интерфейсы, и безинтерфейсные места.
 - WEB-канон: точные редиректы — assert_redirect (302 + Location одним шагом; отдельный GET с флешем сохраняется;
@@ -216,7 +232,6 @@
 5. Видео в постах: вставка с YouTube/VK, возможная кастомная MD-разметка.
 6. Модульность приложения (python-модули): каркас «Обо мне» + устанавливаемые модули (WEB-auth, WEB-лента,
    API-auth, API-лента). Постановки нет.
-7. Роль SuperAdministrator: выдаёт и снимает Administrator. Карта прав в permissions.py — готовая точка расширения.
 8. Преобразование в персональный блог: посты — SuperAdministrator (хозяин) и Administrator; User — читает
    и комментирует; гость — читает.
 10. Аватарки: картинки-аватары (раскраска по хешу сделана → ARC-0037).
@@ -240,9 +255,13 @@
     одном клиенте, две «авторизованные» фикстуры на один клиент не расходятся без аккуратности (→ ARC-0035).
 21. Вынести макрос pagination_nav в macros.html: три локальные копии (index, profile, view), рефакторинг
     шаблонов отдельным раундом (идея ARC-0040).
+22. Тест-гвард: все команды blog/cli.py зарегистрированы в app.cli фабрики; invoke_cli обходит регистрацию —
+    дыру поймали на живом Flask (→ ARC-0041).
+23. Унификация текста ролей: флеш человекочитаемый («Administrator»), бейджи и dropdown — сырые значения;
+    решить в одну сторону (код + тест, → ARC-0041).
 
 ## 10. Текущее состояние
-- Счёт (прогон 2026-11-19, вечер): 189 тестов; Ruff — ноль; покрытие 100% (816 stmts, 108 branch, BrPart 0).
-- Последние раунды: → ARC-0036 → ARC-0037 → ARC-0038 → ARC-0039 → ARC-0040.
+- Счёт (прогон 2026-11-20): 227 тестов; Ruff — ноль; покрытие 100% (902 stmts, 120 branch, BrPart 0).
+- Последние раунды: → ARC-0036 → ARC-0037 → ARC-0038 → ARC-0039 → ARC-0040 → ARC-0041.
 - Активных раундов нет. Allure-отчёты устраивают; за поведением glamor — наблюдение (скрытые teardown-шаги,
   «?» у несработавших постусловий).

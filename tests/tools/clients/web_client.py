@@ -39,7 +39,6 @@ class _Admin:
         return self._client.app_client.post(WebEndpoints.ADMIN.DELETE_USER.format(user_id=user_id))
 
 
-
 class _WebAuth:
     """Аутентификация через web-форму."""
 
@@ -215,4 +214,16 @@ class _WebUsers:
         return self._client.app_client.get(
             WebEndpoints.USER.PROFILE.format(username=username),
             query_string=query or None,
+        )
+
+    def change_role(self, username: str, role: str) -> TestResponse:
+        """POST смены роли пользователя; редирект не следует автоматически.
+
+        Args:
+            username: логин пользователя, чья роль меняется.
+            role: новая роль (Roles.USER или Roles.ADMIN).
+        """
+        return self._client.app_client.post(
+            WebEndpoints.USER.CHANGE_ROLE.format(username=username),
+            data={"role": role},
         )

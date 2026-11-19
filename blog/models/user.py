@@ -5,7 +5,7 @@ from typing import Any
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from blog.constants import Roles
+from blog.constants import Roles, role_includes
 from blog.extensions import db
 
 
@@ -47,12 +47,14 @@ class User(UserMixin, db.Model):
 
     @property
     def is_admin(self) -> bool:
-        """Проверяет является ли пользователь администратором.
+        """Проверяет наличие административных полномочий.
+
+        SUPERADMIN наследует все полномочия ADMIN по иерархии ролей.
 
         Returns:
-            True, если пользователь является администратором.
+            True, если пользователь админ или супер-админ.
         """
-        return self.role == Roles.ADMIN
+        return role_includes(self.role, Roles.ADMIN)
 
     def set_password(self, raw_password: str):
         """Устанавливает пароль. Сохраняет его хэш в модель.

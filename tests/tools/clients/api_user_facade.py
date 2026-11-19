@@ -62,6 +62,15 @@ class ApiUserFacade:
         """
         return self._api.users.list(token=self._user.api_token, page=page, per_page=per_page)
 
+    def change_user_role(self, user_id: int, new_role: str) -> TestResponse:
+        """Меняет роль пользователя от имени пользователя (эндпоинт супер-администратора).
+
+        Args:
+            user_id: идентификатор пользователя.
+            new_role: новая роль (Roles.USER или Roles.ADMIN).
+        """
+        return self._api.users.change_role(user_id=user_id, role=new_role, token=self._user.api_token)
+
     def delete_user(self, user_id: int) -> TestResponse:
         """Удаляет пользователя от имени пользователя."""
         return self._api.users.delete(user_id=user_id, token=self._user.api_token)

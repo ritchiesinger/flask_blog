@@ -17,6 +17,7 @@ class User:
     """WEB-эндпоинты профиля пользователя."""
 
     PROFILE: str = "/user/{username}"
+    CHANGE_ROLE: str = "/user/{username}/role"
 
 
 @dataclass

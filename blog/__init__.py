@@ -94,10 +94,12 @@ def create_app(test_config: dict | None = None) -> Flask:
         db.create_all()
         click.echo("База инициализирована.")
 
-    from blog.cli import clean_uploads, create_admin, make_admin
+    from blog.cli import clean_uploads, create_admin, delete_user, make_admin, make_superadmin
 
     app.cli.add_command(create_admin)  # noqa Особенность Click - декораторы click намеренно типизированы так.
     app.cli.add_command(make_admin)  # noqa Особенность Click - декораторы click намеренно типизированы так.
     app.cli.add_command(clean_uploads)  # noqa Особенность Click - декораторы click намеренно типизированы так.
+    app.cli.add_command(make_superadmin)  # noqa Особенность Click - декораторы click намеренно типизированы так.
+    app.cli.add_command(delete_user)  # noqa Особенность Click - декораторы click намеренно типизированы так.
 
     return app

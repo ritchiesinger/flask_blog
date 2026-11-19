@@ -22,10 +22,10 @@
                 <tr>
                     <td>{{ user.id }}</td>
                     <td>
-                        <a class="d-inline-flex align-items-center navbar-text text-decoration-none" href="{{ url_for('user.profile', username=user.username) }}" aria-label="Профиль пользователя {{ current_user.username }}">{{ avatar(user.username) }}</a>
-                        <a class="d-inline-flex align-items-center navbar-text text-decoration-none" href="{{ url_for('user.profile', username=user.username) }}" aria-label="Профиль пользователя {{ current_user.username }}">{{ user.username }}</a>
+                        <a class="d-inline-flex align-items-center navbar-text text-decoration-none" href="{{ url_for('user.profile', username=user.username) }}" aria-label="Профиль пользователя {{ user.username }}">{{ avatar(user.username) }}</a>
+                        <a class="d-inline-flex align-items-center navbar-text text-decoration-none" href="{{ url_for('user.profile', username=user.username) }}" aria-label="Профиль пользователя {{ user.username }}">{{ user.username }}</a>
                     </td>
-                    <td>{{ user.role }}</td>
+                    <td><span class="badge {{ role_badges[user.role] }}" style="line-height: 1.4">{{ user.role }}</span></td>
                     <td class="text-end">
                         <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}" class="d-inline">
                             <button type="submit" class="btn btn-danger btn-sm"

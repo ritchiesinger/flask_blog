@@ -14,6 +14,7 @@ from blog.pagination import page_from_args
 from blog.services import admin_service
 from blog.services.base_errors import NotFoundError
 from blog.web.errors import web_errors
+from blog.web.user import ROLE_BADGE_CLASSES
 
 bp = Blueprint("admin", __name__)
 
@@ -22,11 +23,16 @@ bp = Blueprint("admin", __name__)
 @login_required
 @web_errors
 def users():
-    """Список пользователей с пагинацией (только для администраторов)."""
+    """Список пользователей с пагинацией (только для администраторов).
+
+    Роль каждого пользователя — цветной бейдж; иерархия видна прямо
+    в таблице (→ ARC-0041).
+    """
     if not current_user.is_admin:
         raise NotFoundError("Страница не найдена.")
     pagination = admin_service.list_users(page=page_from_args(), per_page=USERS_PER_PAGE)
-    return render_template("admin/users.html", users=pagination.items, pagination=pagination)
+    return render_template("admin/users.html", users=pagination.items, pagination=pagination,
+                           role_badges=ROLE_BADGE_CLASSES)
 
 
 @bp.post("/admin/users/<int:user_id>/delete")

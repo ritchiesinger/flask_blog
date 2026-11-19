@@ -5,6 +5,7 @@ from functools import wraps
 
 from flask_jwt_extended import get_current_user, verify_jwt_in_request
 
+from blog.constants import role_includes
 from blog.services.base_errors import ForbiddenError
 
 
@@ -12,9 +13,10 @@ def role_required[**P, R](*roles: str) -> Callable[[Callable[P, R]], Callable[P,
     """Ограничивает доступ к роуту пользователями с одной из заданных ролей.
 
     Требует действующий JWT-токен: сначала проверяется токен, затем роль
-    текущего пользователя. Если пользователь не найден (например, удалён,
-    а токен ещё жив) или его роль не входит в заданные — выбрасывается
-    ForbiddenError (403 через api_errors).
+    текущего пользователя. Роль сверяется по иерархии: SUPERADMIN проходит
+    любую проверку, где требуется ADMIN. Если пользователь не найден (например,
+    удалён, а токен ещё жив) или его роль не проходит ни одну проверку —
+    выбрасывается ForbiddenError (403 через api_errors).
 
     Args:
         roles: Допустимые роли, например Roles.ADMIN.
@@ -37,7 +39,7 @@ def role_required[**P, R](*roles: str) -> Callable[[Callable[P, R]], Callable[P,
             user = get_current_user()
 
             # Если пользователь не найден (например, удалён, а токен ещё жив) — 403
-            if user is None or user.role not in roles:
+            if user is None or not any(role_includes(user.role, required) for required in roles):
                 raise ForbiddenError("Недостаточно прав для выполнения операции")
             return fn(*args, **kwargs)
 

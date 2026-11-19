@@ -289,6 +289,20 @@ class Users(BaseClient):
         }
         return self._get(endpoint=self._endpoints.USERS, token=token, query=query or None)
 
+    def change_role(self, user_id: int, role: str | None = None, token: str | None = None) -> TestResponse:
+        """Меняет роль пользователя (эндпоинт супер-администратора).
+
+        Ключ роли в тело не включается, если role — None или пустая строка:
+        тест «запрос без ключа role» собирается ролью None.
+
+        :param user_id: Идентификатор пользователя.
+        :param role: Новая роль; None — запрос без ключа 'role' в теле.
+        :param token: Bearer-токен супер-администратора; None — запрос без авторизации.
+        :return: Ответ приложения.
+        """
+        json_payload = {"role": role} if role else {}
+        return self._patch(endpoint=self._endpoints.USER.format(user_id), json=json_payload, token=token)
+
     def delete(self, user_id: int, token: str | None = None) -> TestResponse:
         """Удаляет пользователя по идентификатору (эндпоинт администратора).
 
@@ -300,7 +314,7 @@ class Users(BaseClient):
 
 
 class Api:
-    """Фасад над разделами API: auth, posts, users.
+    """Фасад над разделами API: auth, posts, comments, users.
 
     Единственная точка входа для тестов: создаётся поверх клиент-фикстуры
     и открывает разделы как атрибуты — ``api.auth.register(...)``,
