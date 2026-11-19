@@ -4,7 +4,7 @@ from blog.extensions import db
 from blog.models.comment import Comment
 from blog.models.post import Post
 
-from .base_errors import BadRequestError, ForbiddenError, NotFoundError
+from .base_errors import BadRequestError, NotFoundError
 
 
 def list_for_post(post_id: int) -> list[Comment]:
@@ -25,26 +25,21 @@ def list_for_post(post_id: int) -> list[Comment]:
     return list(db.session.execute(stmt).scalars())
 
 
-def get_comment(comment_id: int, *, check_author: int | None = None) -> Comment:
+def get_comment(comment_id: int) -> Comment:
     """Возвращает комментарий по идентификатору.
 
     Args:
         comment_id: Идентификатор комментария.
-        check_author: Идентификатор текущего пользователя; если задан
-            и не совпадает с автором комментария, бросает ForbiddenError.
 
     Returns:
         Модель комментария.
 
     Raises:
         NotFoundError: Комментарий не существует.
-        ForbiddenError: Комментарий принадлежит другому пользователю.
     """
     comment = db.session.get(Comment, comment_id)
     if comment is None:
         raise NotFoundError(f"Comment id {comment_id} doesn't exist.")
-    if check_author is not None and comment.author_id != check_author:
-        raise ForbiddenError("Вы не являетесь автором этого комментария!")
     return comment
 
 

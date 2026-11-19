@@ -6,6 +6,7 @@ from flask_login import current_user, login_required
 from blog.constants import POSTS_PER_PAGE
 from blog.pagination import page_from_args
 from blog.services import comment_service, post_service
+from blog.services.permissions import Action, ensure_allowed
 from blog.web.errors import web_errors
 
 bp = Blueprint("blog", __name__)
@@ -44,7 +45,7 @@ def create():
 @web_errors
 def view(post_id: int):
     """Просмотр одного поста (публичная страница)."""
-    post = post_service.get_post(post_id, check_author=None)
+    post = post_service.get_post(post_id)
     comments = comment_service.list_for_post(post_id)
     return render_template("blog/view.html", post=post, comments=comments)
 
@@ -54,8 +55,8 @@ def view(post_id: int):
 @web_errors
 def update(post_id: int):
     """Редактирование: только автор может менять свой пост."""
-    # check_author=current_user.id — сервис проверит права и выбросит ForbiddenError, если не совпадает
-    post = post_service.get_post(post_id, check_author=current_user.id)
+    post = post_service.get_post(post_id)
+    ensure_allowed(post.author_id, actor=current_user, action=Action.UPDATE, subject="поста")
 
     if request.method == "POST":
         title = request.form.get("title", "").strip()
@@ -78,7 +79,9 @@ def update(post_id: int):
 @web_errors
 def delete(post_id: int):
     """Удаление: только автор. POST‑only для безопасности (защита от GET‑удаления)."""
-    post = post_service.get_post(post_id, check_author=current_user.id)
+    post = post_service.get_post(post_id)
+    ensure_allowed(post.author_id, actor=current_user, action=Action.DELETE, subject="поста")
+
     post_service.delete_post(post)
     flash("Пост удалён.", "success")
     return redirect(url_for("blog.index"))
@@ -110,7 +113,8 @@ def comment_create(post_id: int):
 @web_errors
 def comment_update(comment_id: int):
     """Редактирование комментария: только автор комментария."""
-    comment = comment_service.get_comment(comment_id, check_author=current_user.id)
+    comment = comment_service.get_comment(comment_id)
+    ensure_allowed(comment.author_id, actor=current_user, action=Action.UPDATE, subject="комментария")
 
     if request.method == "POST":
         body = request.form.get("body", "").strip()
@@ -129,7 +133,9 @@ def comment_update(comment_id: int):
 @web_errors
 def comment_delete(comment_id: int):
     """Удаление комментария: только автор комментария. POST-only."""
-    comment = comment_service.get_comment(comment_id, check_author=current_user.id)
+    comment = comment_service.get_comment(comment_id)
+    ensure_allowed(comment.author_id, actor=current_user, action=Action.DELETE, subject="комментария")
+
     post_id = comment.post_id
     comment_service.delete_comment(comment)
     flash("Комментарий удалён.", "success")

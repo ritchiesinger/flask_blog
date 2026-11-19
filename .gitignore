@@ -33,5 +33,5 @@ dist/
 .ipynb_checkpoints
 /instance/
 /uploads/
-/commands.txt
 /allure-results/
+/commands.md

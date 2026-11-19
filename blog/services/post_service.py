@@ -6,7 +6,7 @@ from blog.constants import POSTS_PER_PAGE
 from blog.extensions import db
 from blog.models.post import Post
 
-from .base_errors import ForbiddenError, NotFoundError
+from .base_errors import NotFoundError
 
 
 def list_posts(page: int = 1, per_page: int = POSTS_PER_PAGE) -> Pagination:
@@ -24,26 +24,21 @@ def list_posts(page: int = 1, per_page: int = POSTS_PER_PAGE) -> Pagination:
     return db.paginate(stmt, page=page, per_page=per_page, error_out=False)
 
 
-def get_post(post_id: int, *, check_author: int | None = None) -> Post:
+def get_post(post_id: int) -> Post:
     """Возвращает пост по идентификатору.
 
     Args:
         post_id: Идентификатор поста.
-        check_author: Идентификатор текущего пользователя; если задан
-            и не совпадает с автором поста, бросает ForbiddenError.
 
     Returns:
         Модель поста.
 
     Raises:
         NotFoundError: Пост не существует.
-        ForbiddenError: Пост принадлежит другому пользователю.
     """
     post = db.session.get(Post, post_id)
     if post is None:
         raise NotFoundError(f"Post id {post_id} doesn't exist.")
-    if check_author is not None and post.author_id != check_author:
-        raise ForbiddenError("Вы не являетесь автором этого поста!")
     return post
 
 

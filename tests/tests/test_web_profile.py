@@ -221,14 +221,3 @@ class TestManageControls:
                 allure_step_name="Редактирование админу не показано",
                 error_text="Админ видит пункт редактирования чужих сущностей",
             )
-
-    @title("Попытка админа удалить чужой комментарий — 403 (известное ограничение)")
-    def test_admin_delete_comment_403(self, setup_admin_user: UserObject, setup_foreign_comment: dict):
-        """Сейчас сервис разрешает удаление только автору: POST от админа — 403. После ревизии роли тест меняется."""
-        admin = setup_admin_user
-        comment = setup_foreign_comment
-        with step("Администратор. WEB. Авторизация"):
-            admin.web.auth.login(username=admin.db_model.username, password=admin.password)
-        with step("Администратор. WEB. Попытка удаления чужого комментария"):
-            response = admin.web.comments.delete_comment(comment_id=comment["id"])
-            assert_status_code(expect=403, response=response)

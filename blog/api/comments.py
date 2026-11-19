@@ -1,9 +1,10 @@
 """Роуты API по работе с комментариями."""
 
 from flask import Blueprint, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import current_user, get_jwt_identity, jwt_required
 
 from blog.services import comment_service
+from blog.services.permissions import Action, ensure_allowed
 
 from .errors import api_errors
 
@@ -68,7 +69,8 @@ def update_comment(comment_id: int) -> dict:
         Обновлённое представление комментария.
     """
     data = request.get_json(silent=True) or {}
-    comment = comment_service.get_comment(comment_id, check_author=int(get_jwt_identity()))
+    comment = comment_service.get_comment(comment_id)
+    ensure_allowed(comment.author_id, actor=current_user, action=Action.UPDATE, subject="комментария")
     comment = comment_service.update_comment(comment, data.get("body", comment.body))
     return comment.to_dict()
 
@@ -87,6 +89,7 @@ def delete_comment(comment_id: int) -> tuple[str, int]:
     Returns:
         Пустое тело со статусом 204.
     """
-    comment = comment_service.get_comment(comment_id, check_author=int(get_jwt_identity()))
+    comment = comment_service.get_comment(comment_id)
+    ensure_allowed(comment.author_id, actor=current_user, action=Action.DELETE, subject="комментария")
     comment_service.delete_comment(comment)
     return "", 204

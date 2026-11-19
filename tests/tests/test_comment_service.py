@@ -6,7 +6,7 @@ from pytest import raises
 
 from blog.models import Comment, Post
 from blog.services import comment_service
-from blog.services.base_errors import BadRequestError, ForbiddenError, NotFoundError
+from blog.services.base_errors import BadRequestError, NotFoundError
 from tests.objects.user import UserObject
 from tests.tools.asserters.base_asserters import assert_equal
 
@@ -93,16 +93,11 @@ class TestListAndGet:
 
     @title("Получение комментария по идентификатору")
     @severity(severity_level.BLOCKER)
-    def test_get_comment(
-            self,
-            setup_app: Flask,
-            setup_test_user: UserObject,
-            setup_test_user_comment_via_service: Comment,
-    ):
+    def test_get_comment(self, setup_app: Flask, setup_test_user_comment_via_service: Comment):
         """get_comment возвращает созданный комментарий, гвард автора пропускает своего."""
-        user, created = setup_test_user, setup_test_user_comment_via_service
+        created = setup_test_user_comment_via_service
         with setup_app.app_context(), step("Пользователь. SERVICE. Получение комментария"):
-            found = comment_service.get_comment(comment_id=created.id, check_author=user.db_model.id)
+            found = comment_service.get_comment(comment_id=created.id)
             assert_equal(expect=created.id, actual=found.id, name="comment_id")
             assert_equal(expect=created.body, actual=found.body, name="body")
 
@@ -112,20 +107,6 @@ class TestListAndGet:
         """Несуществующий комментарий даёт NotFoundError."""
         with setup_app.app_context(), raises(NotFoundError), step("SERVICE. Получение комментария"):
             comment_service.get_comment(comment_id=10 ** 9)
-
-    @title("Ошибка при попытке получить чужой комментарий с гвардом автора")
-    @severity(severity_level.CRITICAL)
-    def test_get_foreign_comment(
-            self,
-            setup_app: Flask,
-            setup_test_user: UserObject,
-            setup_test_user_comment_via_service: Comment,
-    ):
-        """Гвард автора с чужим id даёт ForbiddenError."""
-        user, comment = setup_test_user, setup_test_user_comment_via_service
-        with setup_app.app_context(), raises(ForbiddenError):
-            with step("Пользователь. SERVICE. Попытка получить чужой комментарий"):
-                comment_service.get_comment(comment_id=comment.id, check_author=user.db_model.id + 1)
 
 
 @epic("Сервис")

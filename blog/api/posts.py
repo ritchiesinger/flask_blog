@@ -1,12 +1,13 @@
 """Роуты API по работе с постами."""
 
 from flask import Blueprint, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import current_user, get_jwt_identity, jwt_required
 
 from blog.constants import POSTS_PER_PAGE
 from blog.pagination import page_from_args, per_page_from_args
 from blog.services import post_service
 from blog.services.base_errors import BadRequestError
+from blog.services.permissions import Action, ensure_allowed
 
 from .errors import api_errors
 
@@ -76,7 +77,8 @@ def update_post(post_id: int) -> dict:
         Обновлённое представление поста.
     """
     data = request.get_json(silent=True) or {}
-    post = post_service.get_post(post_id, check_author=int(get_jwt_identity()))
+    post = post_service.get_post(post_id)
+    ensure_allowed(post.author_id, actor=current_user, action=Action.UPDATE, subject="поста")
     post = post_service.update_post(
         post,
         data.get("title", post.title),
@@ -99,6 +101,7 @@ def delete_post(post_id: int) -> tuple[str, int]:
     Returns:
         Пустое тело со статусом 204.
     """
-    post = post_service.get_post(post_id, check_author=int(get_jwt_identity()))
+    post = post_service.get_post(post_id)
+    ensure_allowed(post.author_id, actor=current_user, action=Action.DELETE, subject="поста")
     post_service.delete_post(post)
     return "", 204
