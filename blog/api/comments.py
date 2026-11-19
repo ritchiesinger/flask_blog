@@ -3,6 +3,8 @@
 from flask import Blueprint, request
 from flask_jwt_extended import current_user, get_jwt_identity, jwt_required
 
+from blog.constants import COMMENTS_PER_PAGE
+from blog.pagination import page_from_args, per_page_from_args
 from blog.services import comment_service
 from blog.services.permissions import Action, ensure_allowed
 
@@ -13,19 +15,30 @@ bp = Blueprint("api_comments", __name__, url_prefix="/api")
 
 @bp.get("/posts/<int:post_id>/comments")
 @api_errors
-def list_comments(post_id: int) -> list[dict]:
-    """Возвращает комментарии поста (публичный эндпоинт).
+def list_comments(post_id: int) -> dict:
+    """Возвращает комментарии поста в конверте (публичный эндпоинт).
 
-    Несуществующий пост даёт 404 (через api_errors).
+    Конверт как у /api/posts: comments, page, pages, total, per_page.
+    Санитизация page/per_page — через pagination.py. Несуществующий пост — 404.
 
     Args:
         post_id: Идентификатор поста.
 
     Returns:
-        JSON-массив представлений комментариев.
+        Конверт с представлениями комментариев и метаданными пагинации.
     """
-    comments = comment_service.list_for_post(post_id)
-    return [comment.to_dict() for comment in comments]
+    pagination = comment_service.list_for_post(
+        post_id=post_id,
+        page=page_from_args(),
+        per_page=per_page_from_args(COMMENTS_PER_PAGE),
+    )
+    return {
+        "comments": [comment.to_dict() for comment in pagination.items],
+        "page": pagination.page,
+        "pages": pagination.pages,
+        "total": pagination.total,
+        "per_page": pagination.per_page,
+    }
 
 
 @bp.post("/posts/<int:post_id>/comments")

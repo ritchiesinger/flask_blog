@@ -11,6 +11,7 @@ from tests.tools.clients.web_client import WebClient
 
 FLASH_EMPTY = "Текст комментария не может быть пустым."
 FLASH_SUCCESS = "Комментарий добавлен!"
+NAV_MARK = "Постраничная навигация"
 
 
 @epic("WEB")
@@ -280,3 +281,81 @@ class TestDelete:
             assert_status_code(expect=302, response=response)
         with step("Пользователь. WEB. Удаление несуществующего комментария"):
             assert_status_code(expect=404, response=user.web.comments.delete_comment(comment_id=10 ** 9))
+
+
+@epic("WEB")
+@feature("Комментарии")
+@story("Пагинация комментариев поста")
+class TestCommentsPagination:
+    """?page листает комментарии поста: разбивка, санитизация, выход за пределы."""
+
+    @title("Одиннадцать комментариев делятся на две страницы, новые сверху")
+    @severity(severity_level.CRITICAL)
+    def test_pagination_splits_comments(self, setup_test_user, setup_test_user_post):
+        """Страница 1 — десять новейших, страница 2 — старейший; навигация на обеих."""
+        user, post = setup_test_user, setup_test_user_post
+        markers = []
+        with step("Пользователь. API. Создание одиннадцати комментариев с маркерами"):
+            for i in range(1, 12):
+                marker = f"token-{i}"
+                markers.append(marker)
+                response = user.api.create_comment(post_id=post["id"], body=f"{marker} текст")
+                assert_status_code(expect=201, response=response)
+        with step("Пользователь. WEB. Первая страница комментариев"):
+            page1 = user.web.comments.view_post(post_id=post["id"], page=1)
+            assert_status_code(expect=200, response=page1)
+            body1 = page1.get_data(as_text=True)
+        with step("Пользователь. WEB. Вторая страница комментариев"):
+            page2 = user.web.comments.view_post(post_id=post["id"], page=2)
+            assert_status_code(expect=200, response=page2)
+            body2 = page2.get_data(as_text=True)
+        with step("Проверка разбивки"):
+            assert_condition(
+                condition=NAV_MARK in body1 and NAV_MARK in body2,
+                allure_step_name="Навигация отрисована на обеих страницах",
+                error_text="Блок 'Постраничная навигация' не найден на одной из страниц",
+            )
+            assert_condition(
+                condition=all(m in body1 for m in markers[1:]),
+                allure_step_name="Первая страница — десять новейших",
+                error_text="Первая страница не содержит ровно десять новейших комментариев",
+            )
+            assert_condition(
+                condition=markers[0] in body2 and not any(m in body2 for m in markers[1:]),
+                allure_step_name="Вторая страница — только старейший",
+                error_text="Вторая страница комментариев не соответствует ожиданию",
+            )
+
+    def test_comments_page_sanitization(
+            self, setup_test_user, setup_test_user_post, setup_test_user_post_comment,
+    ):
+        """page=abc и page=-3 не роняют страницу поста: 200, комментарий на месте."""
+        user, post, comment = setup_test_user, setup_test_user_post, setup_test_user_post_comment
+        with step("Пользователь. WEB. Страница поста с мусорным page"):
+            garbage = user.web.comments.view_post(post_id=post["id"], page="abc")
+            negative = user.web.comments.view_post(post_id=post["id"], page="-3")
+            assert_status_code(expect=200, response=garbage)
+            assert_status_code(expect=200, response=negative)
+        with step("Проверка содержимого"):
+            for response in (garbage, negative):
+                assert_condition(
+                    condition=comment["body"] in response.get_data(as_text=True),
+                    allure_step_name="Первая страница комментариев показана",
+                    error_text="Мусорный page не вернул первую страницу",
+                )
+
+    @title("Страница за пределами total — пустой список без ошибки")
+    @severity(severity_level.CRITICAL)
+    def test_comments_page_beyond_total(self, setup_test_user, setup_test_user_post, setup_test_user_post_comment):
+        """page=5 при одной странице комментариев: 200, пустое состояние, комментария нет."""
+        user, post, comment = setup_test_user, setup_test_user_post, setup_test_user_post_comment
+        with step("Пользователь. WEB. Страница поста за пределами total"):
+            response = user.web.comments.view_post(post_id=post["id"], page=5)
+            assert_status_code(expect=200, response=response)
+            page = response.get_data(as_text=True)
+        with step("Проверка пустой страницы"):
+            assert_condition(
+                condition="Комментариев пока нет." in page and comment["body"] not in page,
+                allure_step_name="За пределами total — пустой список",
+                error_text="Страница за пределами total не отработала как пустая",
+            )

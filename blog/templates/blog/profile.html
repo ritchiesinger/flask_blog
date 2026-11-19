@@ -40,7 +40,7 @@
 {% for post in pagination.items %}
     <article class="card mb-2">
         <div class="card-body">
-            <h5 class="card-title mb-1" id="post-id-{{ post.id }}">
+            <h6 class="card-title mb-1" id="post-id-{{ post.id }}">
                 {% if (current_user.is_authenticated and current_user.id == post.author.id) or current_user.role == "admin" %}
                 <div class="dropdown d-inline me-1">
                     <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="postActionsMenu-{{ post.id }}" data-bs-toggle="dropdown" aria-expanded="false">
@@ -59,7 +59,7 @@
                 </div>
                 {% endif %}
                 <a class="text-decoration-none" href="{{ url_for('blog.view', post_id=post.id) }}">{{ post.title }}</a>
-            </h5>
+            </h6>
             <div class="text-muted small">
                 Дата: {{ post.created.strftime('%Y-%m-%d %H:%M') }},
                 <a href="{{ url_for('blog.view', post_id=post.id) }}#comments">комментариев:</a>

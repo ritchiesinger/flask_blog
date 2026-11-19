@@ -74,15 +74,15 @@ class TestListAndGet:
             setup_test_user_post_via_service: Post,
             setup_test_user_comment_via_service: Comment,
     ):
-        """Оба комментария в списке; первый — созданный последним."""
+        """Оба комментария в ленте; первый — созданный последним."""
         user, post = setup_test_user, setup_test_user_post_via_service
         with setup_app.app_context():
             with step("Пользователь. SERVICE. Добавление второго комментария"):
                 comment_service.create_comment(post_id=post.id, author_id=user.db_model.id, body="Второй")
-            with step("SERVICE. Получение списка комментариев"):
+            with step("SERVICE. Получение ленты комментариев"):
                 comments = comment_service.list_for_post(post.id)
-                assert_equal(expect=2, actual=len(comments), name="Количество комментариев")
-                assert_equal(expect="Второй", actual=comments[0].body, name="Первый комментарий в списке")
+                assert_equal(expect=2, actual=comments.total, name="Количество комментариев")
+                assert_equal(expect="Второй", actual=comments.items[0].body, name="Первый комментарий в списке")
 
     @title("Ошибка при запросе списка для несуществующего поста")
     @severity(severity_level.CRITICAL)

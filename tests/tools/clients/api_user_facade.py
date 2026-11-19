@@ -78,6 +78,17 @@ class ApiUserFacade:
         """Удаляет комментарий от имени пользователя."""
         return self._api.comments.delete(comment_id=comment_id, token=self._user.api_token)
 
-    def get_comments_list(self, post_id: int) -> TestResponse:
-        """Получает список комментариев поста — эндпоинт публичный."""
-        return self._api.comments.list_for_post(post_id=post_id)
+    def get_comments_list(
+            self,
+            post_id: int,
+            page: int | None = None,
+            per_page: int | None = None,
+    ) -> TestResponse:
+        """Получает список комментариев поста в конверте — эндпоинт публичный.
+
+        Args:
+            post_id: идентификатор поста.
+            page: номер страницы; None — параметр не передаётся.
+            per_page: размер страницы; None — параметр не передаётся.
+        """
+        return self._api.comments.list_for_post(post_id=post_id, page=page, per_page=per_page)

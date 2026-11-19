@@ -203,14 +203,30 @@ class CommentsApi(BaseClient):
         super().__init__(app_client)
         self._endpoints = APIEndpoints.POSTS
 
-    def list_for_post(self, post_id: int, token: str | None = None) -> TestResponse:
-        """Возвращает список комментариев поста.
+    def list_for_post(
+            self,
+            post_id: int,
+            token: str | None = None,
+            page: int | None = None,
+            per_page: int | None = None,
+    ) -> TestResponse:
+        """Возвращает список комментариев поста в конверте с пагинацией.
 
         :param post_id: Идентификатор поста.
         :param token: Bearer-токен; None — запрос без авторизации (эндпоинт публичный).
+        :param page: Номер страницы; None — параметр не передаётся.
+        :param per_page: Размер страницы; None — параметр не передаётся.
         :return: Ответ приложения.
         """
-        return self._get(self._endpoints.POST_COMMENTS.format(post_id=post_id), token=token)
+        query = {
+            **({"page": page} if page is not None else {}),
+            **({"per_page": per_page} if per_page is not None else {}),
+        }
+        return self._get(
+            self._endpoints.POST_COMMENTS.format(post_id=post_id),
+            token=token,
+            query=query or None,
+        )
 
     def create(self, post_id: int, body: str, token: str | None = None) -> TestResponse:
         """Создаёт комментарий к посту.

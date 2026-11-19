@@ -44,10 +44,10 @@ def create():
 @bp.route("/<int:post_id>", methods=("GET",))
 @web_errors
 def view(post_id: int):
-    """Просмотр одного поста (публичная страница)."""
+    """Просмотр одного поста (публичная страница); ?page листает комментарии."""
     post = post_service.get_post(post_id)
-    comments = comment_service.list_for_post(post_id)
-    return render_template("blog/view.html", post=post, comments=comments)
+    pagination = comment_service.list_for_post(post_id, page=page_from_args())
+    return render_template("blog/view.html", post=post, pagination=pagination)
 
 
 @bp.route("/<int:post_id>/update", methods=("GET", "POST"))
@@ -100,7 +100,7 @@ def comment_create(post_id: int):
         return render_template(
             "blog/view.html",
             post=post,
-            comments=comment_service.list_for_post(post_id),
+            pagination=comment_service.list_for_post(post_id),
         )
 
     comment_service.create_comment(post_id=post_id, author_id=current_user.id, body=body)

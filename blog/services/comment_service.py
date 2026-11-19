@@ -1,5 +1,8 @@
 """Бизнес-логика работы с комментариями."""
 
+from flask_sqlalchemy.pagination import Pagination
+
+from blog.constants import COMMENTS_PER_PAGE
 from blog.extensions import db
 from blog.models.comment import Comment
 from blog.models.post import Post
@@ -7,22 +10,28 @@ from blog.models.post import Post
 from .base_errors import BadRequestError, NotFoundError
 
 
-def list_for_post(post_id: int) -> list[Comment]:
-    """Возвращает комментарии поста, новые первыми.
+def list_for_post(post_id: int, page: int = 1, per_page: int = COMMENTS_PER_PAGE) -> Pagination:
+    """Возвращает пагинированные комментарии поста, новые первыми.
 
     Args:
         post_id: Идентификатор поста.
+        page: Номер страницы; за пределами total — пустая страница (error_out=False).
+        per_page: Размер страницы.
 
     Returns:
-        Список моделей комментариев.
+        Страница комментариев.
 
     Raises:
         NotFoundError: Пост не существует.
     """
     if db.session.get(Post, post_id) is None:
         raise NotFoundError(f"Post id {post_id} doesn't exist.")
-    stmt = db.select(Comment).where(Comment.post_id == post_id).order_by(Comment.created.desc())
-    return list(db.session.execute(stmt).scalars())
+    stmt = (
+        db.select(Comment)
+        .where(Comment.post_id == post_id)
+        .order_by(Comment.created.desc(), Comment.id.desc())
+    )
+    return db.paginate(stmt, page=page, per_page=per_page, error_out=False)
 
 
 def get_comment(comment_id: int) -> Comment:

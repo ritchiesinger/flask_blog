@@ -127,9 +127,17 @@ class _WebComments:
     def __init__(self, client: WebClient):
         self._client = client
 
-    def view_post(self, post_id: int) -> TestResponse:
-        """GET страницы поста — публичная."""
-        return self._client.app_client.get(WebEndpoints.POSTS.VIEW.format(post_id=post_id))
+    def view_post(self, post_id: int, page: int | str | None = None) -> TestResponse:
+        """GET страницы поста — публичная.
+
+        Args:
+            post_id: идентификатор поста.
+            page: номер страницы комментариев; None — параметр не передаётся.
+        """
+        query = {"page": page} if page is not None else None
+        return self._client.app_client.get(
+            WebEndpoints.POSTS.VIEW.format(post_id=post_id), query_string=query,
+        )
 
     def create_comment(self, post_id: int, body: str) -> TestResponse:
         """POST формы комментария; редирект не следует автоматически."""
