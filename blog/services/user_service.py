@@ -1,9 +1,11 @@
 """Бизнес-логика профиля пользователя."""
 
+from collections.abc import Callable
+
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy.orm import joinedload
 
-from blog.constants import POSTS_PER_PAGE
+from blog.constants import POSTS_PER_PAGE, PROFILE_TAB_COMMENTS, PROFILE_TAB_POSTS
 from blog.extensions import db
 from blog.models.comment import Comment
 from blog.models.post import Post
@@ -70,27 +72,27 @@ def list_user_comments(user_id: int, page: int = 1, per_page: int = POSTS_PER_PA
     return db.paginate(stmt, page=page, per_page=per_page, error_out=False)
 
 
-def get_profile(
-    username: str, page: int = 1, comment_page: int = 1, per_page: int = POSTS_PER_PAGE
-) -> tuple[User, Pagination, Pagination]:
-    """Собирает профиль: пользователь плюс две пагинированные ленты.
+def get_profile(username: str, tab: str = PROFILE_TAB_POSTS, page: int = 1) -> tuple[User, Pagination]:
+    """Собирает профиль: пользователь плюс одна пагинированная лента — активная вкладка.
 
-    Ленты независимы: посты листаются параметром page, комментарии —
-    comment_page. Санитизация параметров — на WEB-слое через pagination.py.
+    Неактивные разделы не запрашиваются: одна лента на показ, а не две.
 
     Args:
         username: Логин пользователя профиля.
-        page: Страница ленты постов.
-        comment_page: Страница ленты комментариев.
-        per_page: Размер страницы обеих лент; по умолчанию POSTS_PER_PAGE.
+        tab: Активная вкладка (значение из PROFILE_TABS); по умолчанию посты.
+        page: Страница активной ленты.
 
     Returns:
-        Кортеж: пользователь, страница его постов, страница его комментариев.
+        Кортеж: пользователь, страница активной ленты.
 
     Raises:
         NotFoundError: Пользователь не существует.
     """
     user = get_user_by_username(username)
-    posts = list_user_posts(user.id, page=page, per_page=per_page)
-    comments = list_user_comments(user.id, page=comment_page, per_page=per_page)
-    return user, posts, comments
+    return user, _FEEDS[tab](user.id, page=page)
+
+
+_FEEDS: dict[str, Callable[..., Pagination]] = {
+    PROFILE_TAB_POSTS: list_user_posts,
+    PROFILE_TAB_COMMENTS: list_user_comments,
+}

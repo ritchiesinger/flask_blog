@@ -186,20 +186,24 @@ class _WebUsers:
     def __init__(self, client: WebClient):
         self._client = client
 
-    def profile(self, username: str, page: int | str | None = None,
-                comment_page: int | str | None = None) -> TestResponse:
+    def profile(
+            self,
+            username: str,
+            tab: str | None = None,
+            page: int | str | None = None,
+    ) -> TestResponse:
         """GET страницы профиля — публичная.
 
         Args:
             username: логин пользователя.
-            page: номер страницы постов; None — параметр не передаётся.
-            comment_page: номер страницы комментариев; None — не передаётся.
+            tab: вкладка ленты (posts/comments); None — параметр не передаётся.
+            page: номер страницы активной ленты; None — не передаётся.
         """
         query = {}
+        if tab is not None:
+            query["tab"] = tab
         if page is not None:
             query["page"] = page
-        if comment_page is not None:
-            query["comment_page"] = comment_page
         return self._client.app_client.get(
             WebEndpoints.USER.PROFILE.format(username=username),
             query_string=query or None,

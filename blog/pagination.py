@@ -21,6 +21,21 @@ def page_from_args(key: str = "page") -> int:
     return page if page >= 1 else 1
 
 
+def tab_from_args(allowed: tuple[str, ...], default: str, name: str = "tab") -> str:
+    """Возвращает параметр вкладки из query-строки с санитизацией.
+
+    Args:
+        allowed: Допустимые значения вкладки.
+        default: Значение при отсутствии, мусоре или пустой строке.
+        name: Имя query-параметра; по умолчанию "tab".
+
+    Returns:
+        Корректное значение вкладки.
+    """
+    value = request.args.get(name, "").strip()
+    return value if value in allowed else default
+
+
 def per_page_from_args(default: int) -> int:
     """Размер страницы из query-параметра.
 
