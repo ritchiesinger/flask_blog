@@ -16,4 +16,6 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = 3600  # токен живёт 1 час
     JWT_ERROR_MESSAGE_KEY = "error"
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
-    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 МБ — лимит на запрос с файлом
+    # Лимит тела запроса: клиентский лимит изображения — 50 МБ (md_editor_init.js), здесь запас на служебные байты
+    # multipart-запроса и на прочие POST-формы. Последняя инстанция против обхода клиентского кода.
+    MAX_CONTENT_LENGTH = 64 * 1024 * 1024

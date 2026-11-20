@@ -5,13 +5,21 @@
 // Сверху на базовый конфиг добавлены: загрузка изображений (imageUploadFunction
 // → POST /uploads) и кнопка эмодзи с общей панелью из emoji_picker.js.
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+// Лимит загрузки изображения — одна константа для собственной проверки
+// uploadImage и конфига EasyMDE, чтобы цифры не расходились. Порог высок
+// сознательно: цель раунда изображений — пользователь НЕ готовит картинку
+// заранее, сервер сам пережимает до детальной версии и строит миниатюру.
+// Файл больше 50 МБ — почти наверняка не изображение (видео, архив), его
+// отрезаем на клиенте, не гоняя по сети. Серверный лимит (MAX_CONTENT_LENGTH,
+// если задан) — последняя инстанция против обхода клиентского кода.
+const MAX_IMAGE_SIZE = 50 * 1024 * 1024;
+const MAX_IMAGE_SIZE_MB = MAX_IMAGE_SIZE / (1024 * 1024);
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 // Загрузка изображения: файл уходит на сервер, в ответе ждём {"url": "..."}.
 function uploadImage(file, onSuccess, onError) {
     if (file.size > MAX_IMAGE_SIZE) {
-        onError('Файл больше 5 МБ — уменьшите картинку или сожмите её и попробуйте снова.');
+        onError(`Файл больше ${MAX_IMAGE_SIZE_MB} МБ — это слишком много для изображения. Проверьте, что выбрали картинку, а не видео.`);
         return;
     }
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
@@ -23,8 +31,9 @@ function uploadImage(file, onSuccess, onError) {
     fetch('/uploads', { method: 'POST', body: data })
         .then((response) => {
             if (!response.ok) {
-                onError('Сервер отклонил файл. Проверьте формат и попробуйте ещё раз.');
-                return;
+                return response.json()
+                    .then((result) => onError(result.error || 'Сервер отклонил файл. Проверьте формат и попробуйте ещё раз.'))
+                    .catch(() => onError('Сервер отклонил файл. Проверьте формат и попробуйте ещё раз.'));
             }
             return response.json();
         })
@@ -73,7 +82,7 @@ new EasyMDE({
     minHeight: '200px',
     uploadImage: true,
     imageUploadFunction: uploadImage,
-    imageMaxSize: 5 * 1024 * 1024,
+    imageMaxSize: MAX_IMAGE_SIZE,
     imageAccept: 'image/png, image/jpeg, image/gif, image/webp',
     toolbar: ['bold', 'italic', 'heading', '|',
               'unordered-list', 'ordered-list', 'quote', 'code', '|',

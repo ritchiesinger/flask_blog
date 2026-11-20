@@ -12,6 +12,7 @@ dependencies = [
     "Flask-Migrate==4.1.0",
     "nh3==0.3.7",
     "mistune==3.4.0",
+    "Pillow==13.0.0",
 ]
 
 [build-system]

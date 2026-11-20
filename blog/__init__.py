@@ -1,7 +1,8 @@
 """Фабрика приложения: конфигурация, расширения, роуты и CLI-команды."""
 
 import click
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template, request
+from flask.typing import ResponseValue
 
 # Модуль с колбэками загрузки пользователя: декораторы регистрируют их на login_manager и jwt при импорте.
 import blog.loaders  # noqa: F401 (импорт ради регистрации)
@@ -52,6 +53,28 @@ def create_app(test_config: dict | None = None) -> Flask:
         app.logger.exception(e)
         return render_template("errors/500.html"), 500
 
+    @app.errorhandler(413)
+    def request_too_large(e: Exception) -> tuple[ResponseValue, int]:
+        """Обрабатывает превышение MAX_CONTENT_LENGTH (→ лимитный хвост).
+
+        Возникает до входа во вью (Werkzeug режет тело запроса), поэтому мимо web_errors и сервисов. Для /uploads —
+        JSON с понятным текстом: его покажет клиентский uploadImage из md_editor_init.js. Для прочих путей — короткий
+        JSON: тело больше 64 МБ обычный пользователь превысить не может. abort(413) внутри обработчика не используем:
+        повторный выброс той же ошибки уводит Flask в цикл.
+
+        Args:
+            e: Перехваченная ошибка превышения лимита тела.
+
+        Returns:
+            (JSON с описанием ошибки, 413).
+        """
+        if request.path.startswith("/uploads"):
+            message = "Файл слишком большой — сервер принимает изображения до 50 МБ."
+        else:
+            message = "Запрос слишком большой."
+        return jsonify({"error": message}), 413
+
+
     @app.errorhandler(404)
     def not_found(error: Exception) -> tuple[str, int]:
         """Отдаёт фирменную страницу 404.
@@ -94,12 +117,13 @@ def create_app(test_config: dict | None = None) -> Flask:
         db.create_all()
         click.echo("База инициализирована.")
 
-    from blog.cli import clean_uploads, create_admin, delete_user, make_admin, make_superadmin
+    from blog.cli import clean_uploads, create_admin, delete_user, make_admin, make_superadmin, make_thumbs
 
     app.cli.add_command(create_admin)  # noqa Особенность Click - декораторы click намеренно типизированы так.
     app.cli.add_command(make_admin)  # noqa Особенность Click - декораторы click намеренно типизированы так.
     app.cli.add_command(clean_uploads)  # noqa Особенность Click - декораторы click намеренно типизированы так.
     app.cli.add_command(make_superadmin)  # noqa Особенность Click - декораторы click намеренно типизированы так.
     app.cli.add_command(delete_user)  # noqa Особенность Click - декораторы click намеренно типизированы так.
+    app.cli.add_command(make_thumbs)  # noqa Особенность Click - декораторы click намеренно типизированы так.
 
     return app

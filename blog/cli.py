@@ -1,6 +1,5 @@
 """Команды консольной утилиты работы с приложением."""
 
-from os import listdir, path, remove
 from typing import cast
 
 import click
@@ -9,8 +8,8 @@ from flask.cli import with_appcontext
 
 from blog.constants import Roles
 from blog.extensions import db
-from blog.models import Post, User
-from blog.services import uploads_service, user_service
+from blog.models import Image, User
+from blog.services import post_service, uploads_service, user_service
 from blog.services.base_errors import ConflictError, NotFoundError
 
 
@@ -40,7 +39,7 @@ make_admin = cast(click.Command, make_admin)
 @click.argument("password")
 @with_appcontext
 def create_admin(username: str, password: str):
-    """Создать администратора в БД.
+    """Создать администратор в БД.
 
     Args:
         username: Логин создаваемого администратора.
@@ -111,25 +110,56 @@ delete_user = cast(click.Command, delete_user)
 
 
 @click.command("clean-uploads")
+@with_appcontext
 def clean_uploads() -> None:
-    """Удаляет файлы изображений, на которые не ссылается ни один пост.
+    """Удаляет изображения-сироты: строки БД без связей и файлы без строк.
 
-    Сиротой считается файл в папке uploads, путь /uploads/<имя> которого
-    не встречается ни в одном теле поста — в том числе загруженный, но не
-    вставленный в текст (файл будет удалён при следующей чистке, это
-    осознанное поведение). Комментарии не сканируются: они plain text
-    по дизайну, картинок в них нет.
+    Источник истины — БД (→ ARC-0044). Сирота-строка — Image без записей в
+    image_post: загруженная, но не вставленная картинка удаляется при
+    следующей чистке (осознанное поведение, как и раньше). Файл без строки —
+    дрейф (загрузки до ARC-0044 после прогонов make-thumbs): удаляется.
+    Миниатюра удаляется вместе с детальной версией. Комментарии не
+    участвуют: plain text по дизайну, картинок в них нет.
     """
-    upload_folder = current_app.config["UPLOAD_FOLDER"]
-    referenced: set[str] = set()
-    for (body,) in db.session.execute(db.select(Post.body)):
-        if body:
-            referenced.update(uploads_service.UPLOAD_RE.findall(body))
+    folder = current_app.config["UPLOAD_FOLDER"]
+    orphans = db.session.execute(
+        db.select(Image).where(~Image.posts.any())
+    ).scalars().all()
+    removed_rows = 0
+    for image in orphans:
+        uploads_service.delete_image_files(folder, image.filename)
+        db.session.delete(image)
+        removed_rows += 1
+    db.session.commit()
 
-    deleted = 0
-    if path.isdir(upload_folder):
-        for name in listdir(upload_folder):
-            if name not in referenced:
-                remove(path.join(upload_folder, name))
-                deleted += 1
-    click.echo(f"Удалено файлов-сирот: {deleted}.")
+    drift = uploads_service.find_drift_files(folder)
+    for name in drift:
+        uploads_service.delete_image_files(folder, name)
+    click.echo(f"Удалено строк-сирот: {removed_rows}. Удалено файлов-дрейфа: {len(drift)}.")
+
+
+clean_uploads = cast(click.Command, clean_uploads)
+
+
+@click.command("make-thumbs")
+@with_appcontext
+def make_thumbs() -> None:
+    """Бэкфилл БД, миниатюры и пересборка связей постов (→ ARC-0044).
+
+    Одна команда закрывает миграцию старого сервера: файлы без строк
+    принимаются в БД (author_id=None — автор неизвестен), генерируются
+    недостающие миниатюры, для всех постов пересобираются связи
+    image_post (посты, созданные до раунда, связей не имеют — без этого
+    clean-uploads удалил бы их картинки как сироты). GIF не обрабатываются
+    по дизайну: строка создаётся, миниатюра не генерируется. Команда
+    идемпотентна и пригодна для регенерации при смене THUMB_MAX_SIDE.
+    """
+    folder = current_app.config["UPLOAD_FOLDER"]
+    existing = set(db.session.scalars(db.select(Image.filename)).all())
+    adopted, thumbs = uploads_service.backfill_files(folder, existing)
+    synced = post_service.sync_all_post_links()
+    click.echo(
+        f"Принято в БД: {adopted}. Сгенерировано миниатюр: {thumbs}. "
+        f"Связей пересобрано: {synced}."
+    )
+

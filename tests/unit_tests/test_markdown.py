@@ -1,4 +1,5 @@
 """Юнит-тесты рендера Markdown: конвертация и санитизация."""
+from uuid import uuid4
 
 from glamor import epic, feature, severity, severity_level, step, story, title
 
@@ -142,3 +143,73 @@ class TestRenderMarkdownSecurity:
         """javascript: — обход через валидный синтаксис ссылок."""
         html = render_markdown("[клик](javascript:alert(1))")
         assert "javascript:" not in html
+
+
+@epic("Сервисы")
+@feature("Изображения")
+@story("Рендер картинок")
+class TestRenderImageRewrite:
+    """Переписывание ссылок на наши загрузки (→ ARC-0044)."""
+
+    @title("Ссылка на нашу загрузку становится миниатюрой внутри ссылки на детальную версию")
+    def test_our_image_rewritten_to_thumb(self):
+        """<a href="детальная" target=_blank><img src="миниатюра" class=img-fluid></a>."""
+        name = f"{uuid4().hex}.png"
+        html = render_markdown(f"![кот](/uploads/{name})")
+        assert_condition(
+            condition=f'href="/uploads/{name}"' in html,
+            allure_step_name="Ссылка ведёт на детальную версию",
+            error_text=f"Нет ссылки на детальную версию: {html}",
+        )
+        assert_condition(
+            condition=f'src="/uploads/thumbs/{name}"' in html,
+            allure_step_name="Внутри ссылки — миниатюра",
+            error_text=f"Миниатюра не подставлена: {html}",
+        )
+        assert_condition(
+            condition='class="img-fluid"' in html,
+            allure_step_name="Класс img-fluid пережил санитизацию",
+            error_text=f"Класс потерян: {html}",
+        )
+
+    @title("Ссылка с заголовком сохраняет title")
+    def test_our_image_with_title(self):
+        """Заголовок картинки переносится в переписанный HTML."""
+        name = f"{uuid4().hex}.png"
+        html = render_markdown(f'![кот](/uploads/{name} "Заголовок")')
+        assert_condition(
+            condition='title="Заголовок"' in html,
+            allure_step_name="title сохранён в переписанной картинке",
+            error_text=f"title потерян: {html}",
+        )
+
+    @title("GIF не переписывается — ни миниатюры, ни обёртки")
+    def test_gif_passes_through(self):
+        """GIF-ссылка рендерится обычным img на детальный путь."""
+        name = f"{uuid4().hex}.gif"
+        html = render_markdown(f"![кот](/uploads/{name})")
+        assert_condition(
+            condition=f'src="/uploads/{name}"' in html,
+            allure_step_name="GIF отдаётся как есть",
+            error_text=f"Неожиданный HTML: {html}",
+        )
+        assert_condition(
+            condition="/uploads/thumbs/" not in html,
+            allure_step_name="Миниатюра для GIF не подставлялась",
+            error_text=f"Неожиданная миниатюра: {html}",
+        )
+
+    @title("Внешняя картинка рендерится как раньше")
+    def test_external_image_untouched(self):
+        """Чужой URL не попадает под паттерн: обычный img без обёртки."""
+        html = render_markdown("![кот](https://example.com/x.png)")
+        assert_condition(
+            condition='src="https://example.com/x.png"' in html,
+            allure_step_name="Внешняя картинка не изменилась",
+            error_text=f"Неожиданный HTML: {html}",
+        )
+        assert_condition(
+            condition="/uploads/thumbs/" not in html,
+            allure_step_name="Переписывание не задело внешний URL",
+            error_text=f"Неожиданная миниатюра: {html}",
+        )

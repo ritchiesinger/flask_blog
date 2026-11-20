@@ -5,6 +5,7 @@ from typing import Any
 
 from blog.extensions import db
 from blog.models.comment import Comment
+from blog.models.image import image_post
 
 
 class Post(db.Model):
@@ -31,6 +32,9 @@ class Post(db.Model):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    # Картинки, вставленные в тело поста; набор синхронизирует post_service по UPLOAD_RE (→ ARC-0044).
+    # passive_deletes: строки image_post снимает каскад БД, как и у comments.
+    images = db.relationship("Image", secondary=image_post, back_populates="posts", passive_deletes=True)
 
     def __init__(self, title: str, body: str, author_id: int, created: datetime | None = None):
         """Запись блога (пост).

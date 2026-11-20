@@ -12,12 +12,24 @@ PROFILE_TABS = (PROFILE_TAB_POSTS, PROFILE_TAB_COMMENTS)
 
 COMMENTS_PER_PAGE = 10
 
-# Допустимые расширения загружаемых изображений (первый фильтр; вторая
-# инстанция — magic bytes в uploads_service).
+# Допустимые расширения загружаемых изображений (первый фильтр по имени;
+# реальный формат содержимого определяет Pillow, → ARC-0044).
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 # Алиасы расширений: как хранить (jpeg → jpg).
 IMAGE_EXTENSION_ALIASES = {"jpeg": "jpg"}
+
+# Обработка изображений при загрузке (→ ARC-0044): Pillow пережимает до
+# MAX_IMAGE_SIDE по большей стороне (детальная версия), из неё генерируется
+# миниатюра THUMB_MAX_SIDE; оригинал не хранится. JPEG/WebP пересжимаются
+# с JPEG_QUALITY (заодно стреляется EXIF), PNG — пересохранение без потерь.
+MAX_IMAGE_SIDE = 1600
+THUMB_MAX_SIDE = 480
+JPEG_QUALITY = 85
+
+# Каноничное расширение по формату содержимого (Pillow format): имя файла
+# генерируется под верный формат — PNG под именем .jpg становится .png.
+IMAGE_FORMAT_EXTENSIONS = {"PNG": "png", "JPEG": "jpg", "GIF": "gif", "WEBP": "webp"}
 
 
 @dataclass
