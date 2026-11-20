@@ -3,35 +3,21 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from blog.constants import PROFILE_TAB_POSTS, PROFILE_TABS, Roles, role_includes
+from blog.constants import (
+    PROFILE_TAB_POSTS,
+    PROFILE_TABS,
+    ROLE_BADGE_CLASSES,
+    ROLE_DISPLAY_NAMES,
+    ROLE_TARGET_OPTIONS,
+    Roles,
+    role_includes,
+)
 from blog.pagination import page_from_args, tab_from_args
 from blog.services import user_service
 from blog.services.base_errors import NotFoundError
 from blog.web.errors import web_errors
 
 bp = Blueprint("user", __name__)
-
-# Человекочитаемые названия ролей: флеш-сообщения и подписи dropdown.
-ROLE_TITLES = {
-    Roles.USER: "User",
-    Roles.ADMIN: "Administrator",
-    Roles.SUPERADMIN: "SuperAdministrator",
-}
-
-# Цвет бейджа роли в шаблонах (профиль, список пользователей админки).
-ROLE_BADGE_CLASSES = {
-    Roles.USER: "bg-secondary",
-    Roles.ADMIN: "bg-primary",
-    Roles.SUPERADMIN: "bg-dark",
-}
-
-# Поверхность смены роли через интерфейсы — только USER <-> ADMIN: SUPERADMIN
-# не выдаётся и не снимается (роль уникальна, → ARC-0041). Ключ — текущая
-# роль цели; SUPERADMIN в карте нет, ему контролов не рисуют.
-ROLE_TARGET_OPTIONS = {
-    Roles.USER: (Roles.ADMIN,),
-    Roles.ADMIN: (Roles.USER,),
-}
 
 
 @bp.get("/user/<username>")
@@ -63,7 +49,7 @@ def profile(username: str):
         pagination=pagination,
         can_change_role=can_change_role,
         available_roles=ROLE_TARGET_OPTIONS.get(profile_user.role, ()),
-        role_titles=ROLE_TITLES,
+        role_titles=ROLE_DISPLAY_NAMES,
         role_badges=ROLE_BADGE_CLASSES,
     )
 
@@ -90,5 +76,5 @@ def change_role(username: str):
     target = user_service.get_user_by_username(username)
     new_role = request.form.get("role", "")
     user_service.change_role(target.id, new_role, actor=current_user)
-    flash(f"Роль пользователя {username} изменена на {ROLE_TITLES.get(new_role, new_role)}.", "success")
+    flash(f"Роль пользователя {username} изменена на {ROLE_DISPLAY_NAMES.get(new_role, new_role)}.", "success")
     return redirect(url_for("user.profile", username=username))

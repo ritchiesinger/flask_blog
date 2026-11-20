@@ -21,7 +21,9 @@
 - Исключение: /api/token отвечает 401 напрямую dict (нет доменных исключений).
 - Константы — blog/constants.py: POSTS_PER_PAGE = 5, COMMENTS_PER_PAGE = 10, USERS_PER_PAGE = 20,
   MAX_PER_PAGE = 50, Roles (USER, ADMIN, SUPERADMIN), ROLE_SCOPES и role_includes (иерархия ролей —
-  единственная точка истины; → ARC-0041), PROFILE_TAB_POSTS/PROFILE_TAB_COMMENTS/PROFILE_TABS.
+  единственная точка истины; → ARC-0041), ROLE_DISPLAY_NAMES/ROLE_BADGE_CLASSES/ROLE_TARGET_OPTIONS
+  (ролевые карты: человекочитаемые названия — язык UI; сырые значения — в value dropdown, API и БД;
+  → ARC-0043), PROFILE_TAB_POSTS/PROFILE_TAB_COMMENTS/PROFILE_TABS.
   Строки ролей в коде не используются — только константы.
 - pyproject: requires-python >=3.15; ruff — line-length 120, py315, E/F/I/UP/B/Q/D, pydocstyle google,
   ignore-decorators ["wraps"]; coverage — branch=true, source=["blog"].
@@ -38,7 +40,8 @@
   uploads, → ARC-0033), `flask make-superadmin` (отказ, если супер-админ уже существует; смена хозяина —
   delete-user, затем make-superadmin), `flask delete-user` (→ ARC-0041).
 - Новые CLI-команды регистрируются add_command в фабрике приложения: invoke_cli в тестах зовёт click
-  напрямую, живой Flask без регистрации команду не видит (→ ARC-0041).
+  напрямую, живой Flask без регистрации команду не видит; регистрация накрыта юнит-гвардом
+  test_cli_registration.py (→ ARC-0041, ARC-0043).
 - create-admin: дубль имени — «уже существует», пароль не перезаписывается.
 - auth_service: authenticate / register_user; ошибки — исключениями (пустое имя или пароль короче 4 символов →
   BadRequestError; дубль → ConflictError). POST /api/register → 201 {"user": {...}}; username strip — пустая → 400.
@@ -57,7 +60,8 @@
   идемпотентен; супер-админ проходит существующие админ-эндпоинты по иерархии); WEB POST
   /user/<username>/role (302 + флеш «Роль изменена на Administrator.», контролы — dropdown сырых ролей +
   «Изменить» + confirm-модалка — видит только супер-админ на чужом профиле; не-супер прямой POST → 404,
-  гость → 302). Бейджи ролей в профиле и админке. В тестах супер-админ — create_user(role=Roles.SUPERADMIN).
+  гость → 302). Бейджи ролей в профиле и админке — человекочитаемые названия (→ ARC-0043).
+  В тестах супер-админ — create_user(role=Roles.SUPERADMIN).
 - Фирменные ошибки: errorhandler(404)/(500) в фабрике + errors/404.html, errors/500.html;
   один 404-хэндлер ловит и роутинг, и NotFoundError админки.
 - Хедер: пункт «Административная панель» только при is_authenticated and is_admin; меню для остальных пустое
@@ -196,7 +200,8 @@
   Ассертеры: assert_status_code, assert_condition, assert_redirect, SoftAssert (чеки внутрь SoftAssert —
   только с soft_assert=True, иначе исполняются сразу и вернут None; → ARC-0041).
 - CLI: invoke_cli(app, command, args, hidden=()) — клик зовётся только через него. CLI — интерфейс, НЕ юнит.
-  Юниты: tests/unit_tests/ — без Allure-обвязки; ветки, недостижимые через интерфейсы, и безинтерфейсные места.
+  Юниты: tests/unit_tests/ — без Allure-обвязки; ветки, недостижимые через интерфейсы, безинтерфейсные места
+  и гварды (регистрация CLI — test_cli_registration.py, → ARC-0043).
 - WEB-канон: точные редиректы — assert_redirect (302 + Location одним шагом; отдельный GET с флешем сохраняется;
   → ARC-0035); исключения — негативная проверка «Location не ведёт наружу» и startswith(LOGIN) при гостевом next —
   на assert_status_code + assert_condition, асертер под особые случаи не подгоняется (вернуться к опциональному
@@ -260,13 +265,9 @@
     одном клиенте, две «авторизованные» фикстуры на один клиент не расходятся без аккуратности (→ ARC-0035).
 21. Вынести макрос pagination_nav в macros.html: три локальные копии (index, profile, view), рефакторинг
     шаблонов отдельным раундом (идея ARC-0040).
-22. Тест-гвард: все команды blog/cli.py зарегистрированы в app.cli фабрики; invoke_cli обходит регистрацию —
-    дыру поймали на живом Flask (→ ARC-0041).
-23. Унификация текста ролей: флеш человекочитаемый («Administrator»), бейджи и dropdown — сырые значения;
-    решить в одну сторону (код + тест, → ARC-0041).
 
 ## 10. Текущее состояние
-- Счёт (прогон 2026-11-20): 230 тестов; Ruff — ноль; покрытие 100% (904 stmts, 120 branch, BrPart 0).
-- Последние раунды: → ARC-0037 → ARC-0038 → ARC-0039 → ARC-0040 → ARC-0041 → ARC-0042.
+- Счёт (прогон 2026-11-20, вечер): 236 тестов; Ruff — ноль; покрытие 100% (903 stmts, 120 branch, BrPart 0).
+- Последние раунды: → ARC-0038 → ARC-0039 → ARC-0040 → ARC-0041 → ARC-0042 → ARC-0043.
 - Активных раундов нет. Allure-отчёты устраивают; за поведением glamor — наблюдение (скрытые teardown-шаги,
   «?» у несработавших постусловий).

@@ -50,3 +50,28 @@ def role_includes(role: str, required: str) -> bool:
         True, если пользователь с ролью role проходит проверку required.
     """
     return required in ROLE_SCOPES[role]
+
+
+# Человекочитаемые названия ролей (→ ARC-0043): единый язык UI — флеш,
+# подписи dropdown и текст бейджей. Машинные значения остаются в value
+# dropdown, протоколе API и БД.
+ROLE_DISPLAY_NAMES = {
+    Roles.USER: "User",
+    Roles.ADMIN: "Administrator",
+    Roles.SUPERADMIN: "SuperAdministrator",
+}
+
+# Цвет бейджа роли в шаблонах (профиль, список пользователей админки).
+ROLE_BADGE_CLASSES = {
+    Roles.USER: "bg-secondary",
+    Roles.ADMIN: "bg-primary",
+    Roles.SUPERADMIN: "bg-dark",
+}
+
+# Поверхность смены роли через интерфейсы — только USER <-> ADMIN: SUPERADMIN
+# не выдаётся и не снимается (роль уникальна, → ARC-0041). Ключ — текущая
+# роль цели; SUPERADMIN в карте нет, ему контролов не рисуют.
+ROLE_TARGET_OPTIONS = {
+    Roles.USER: (Roles.ADMIN,),
+    Roles.ADMIN: (Roles.USER,),
+}
