@@ -148,3 +148,40 @@
 .avatar.avatar-palette-3 { background-color: #fd7e14; color: #fff; }
 .avatar.avatar-palette-4 { background-color: #20c997; color: #fff; }
 .avatar.avatar-palette-5 { background-color: #6f42c1; color: #fff; }
+
+/* Шпаргалка Markdown у редактора (ARC-0042): карточки «исходник → результат».
+   Вертикальная компоновка внутри карточки: у примеров разная ширина исходника,
+   бок о бок они строились неровно; карточки одинаковой структуры в сетке
+   выравниваются сами. */
+.md-cheatsheet-item {
+    height: 100%;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+}
+.md-cheatsheet-source {
+    display: block;
+    white-space: pre-line;   /* переносы в литералах видны, как в редакторе */
+    word-break: break-word;
+    margin-bottom: 0.25rem;
+}
+.md-cheatsheet-preview {
+    overflow-wrap: anywhere;
+}
+.md-cheatsheet-preview p:last-child {
+    margin-bottom: 0;
+}
+.md-cheatsheet-preview ul {
+    margin-bottom: 0;
+}
+.md-cheatsheet-preview blockquote {
+    margin-bottom: 0;
+}
+.md-cheatsheet-preview pre {
+    margin-bottom: 0;
+}
+.md-cheatsheet-note {
+    color: var(--bs-secondary-color);
+    font-size: 0.875rem;
+}

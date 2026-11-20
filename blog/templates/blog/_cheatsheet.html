@@ -1,0 +1,49 @@
+{# Шпаргалка Markdown у редактора (ARC-0042). Правая часть карточки рендерится
+   живым фильтром markdown — примеры всегда показывают актуальное поведение
+   render_markdown. Подключается в create.html/update.html после #body.
+   Пример картинки не рендерится живьём (raw): настоящей картинки под рукой
+   нет, битая иконка справке не к лицу. #}
+<div class="mb-2">
+    <button class="btn btn-sm btn-outline-secondary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#md-cheatsheet"
+            aria-expanded="false" aria-controls="md-cheatsheet">
+        Шпаргалка Markdown
+    </button>
+    <div class="collapse mt-2" id="md-cheatsheet">
+        <div class="border rounded-3 p-3 bg-body-tertiary">
+            <div class="row row-cols-1 row-cols-md-2 g-2 md-cheatsheet">
+                {% for item in [
+                    {'src': '## Заголовок', 'note': '## и ### — уровни вложенности', 'raw': false},
+                    {'src': '**жирный** и *курсив*', 'note': 'курсив — одна звёздочка', 'raw': false},
+                    {'src': '`инлайн-код`', 'note': '', 'raw': false},
+                    {'src': '```\nблок кода\n```', 'note': '', 'raw': false},
+                    {'src': '- пункт один\n- пункт два', 'note': 'каждый пункт с новой строки', 'raw': false},
+                    {'src': '> текст цитаты', 'note': '', 'raw': false},
+                    {'src': '[текст ссылки](https://example.com)', 'note': '', 'raw': false},
+                    {'src': '![описание картинки](uploads/картинка.jpg)',
+                     'note': 'путь подставится после загрузки картинки кнопкой в тулбаре', 'raw': true},
+                ] %}
+                    <div class="col">
+                        <div class="md-cheatsheet-item">
+                            <code class="md-cheatsheet-source">{{ item.src }}</code>
+                            <div class="md-cheatsheet-preview">
+                                {%- if item.raw -%}
+                                    <span class="text-body-secondary">…картинка</span>
+                                {%- else -%}
+                                    {{ item.src | markdown | safe }}
+                                {%- endif -%}
+                            </div>
+                            {% if item.note %}
+                                <div class="md-cheatsheet-note">{{ item.note }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="md-cheatsheet-note mt-2">
+                Эмодзи вставляй как обычный текст 🙂 или кнопкой пикера.
+                HTML в тексте отображается как есть — и не исполняется.
+            </div>
+        </div>
+    </div>
+</div>

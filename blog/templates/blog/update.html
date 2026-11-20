@@ -9,17 +9,18 @@
         <li class="breadcrumb-item active" aria-current="page">Редактирование поста</li>
     </ol>
 </nav>
-<div class="card mx-auto">
+<div class="card mx-auto mb-3">
     <div class="card-body">
         <form method="post">
             <div class="mb-3">
                 <label class="form-label" for="title">Заголовок</label>
                 <input class="form-control" id="title" name="title" value="{{ request.form['title'] or post.title }}" required>
             </div>
-            <div class="mb-3">
+            <div class="mb-2">
                 <label class="form-label" for="body">Тело поста</label>
                 <textarea class="form-control" id="body" name="body" rows="8">{{ request.form['body'] or post.body }}</textarea>
             </div>
+            {% include 'blog/_cheatsheet.html' %}
             <button class="btn btn-primary" type="submit">Сохранить</button>
             <a class="btn btn-secondary" href="{{ url_for('blog.index') }}">Отмена</a>
         </form>
