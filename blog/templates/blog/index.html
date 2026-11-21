@@ -48,22 +48,6 @@
     </div>
 </article>
 {% endfor %}
-{% if pagination.pages > 1 %}
-<nav aria-label="Постраничная навигация">
-    <ul class="pagination">
-        <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
-            <a class="page-link" href="{{ url_for('blog.index', page=pagination.page - 1) if pagination.has_prev else '#' }}"><i class="bi bi-chevron-left"></i></a>
-        </li>
-        {% for n in range(1, pagination.pages + 1) %}
-        <li class="page-item {{ 'active' if n == pagination.page }}">
-            <a class="page-link" href="{{ url_for('blog.index', page=n) }}">{{ n }}</a>
-        </li>
-        {% endfor %}
-        <li class="page-item {{ 'disabled' if not pagination.has_next }}">
-            <a class="page-link" href="{{ url_for('blog.index', page=pagination.page + 1) if pagination.has_next else '#' }}"><i class="bi bi-chevron-right"></i></a>
-        </li>
-    </ul>
-</nav>
-{% endif %}
+{{ pagination_nav(pagination, 'blog.index') }}
 <script src="{{ url_for('static', filename='expand_post.js') }}"></script>
 {% endblock %}

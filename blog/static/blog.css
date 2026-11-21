@@ -7,7 +7,7 @@
 }
 
 .post-clip {
-    height: 9rem;          /* ровно 6 строк при line-height 1.5 */
+    height: 24rem;         /* тизер: картинка сверху видна целиком, до ~16 строк текста */
     overflow: hidden;
     position: relative;
     transition: height 0.4s ease;

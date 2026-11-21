@@ -2,7 +2,8 @@
    живым фильтром markdown — примеры всегда показывают актуальное поведение
    render_markdown. Подключается в create.html/update.html после #body.
    Пример картинки не рендерится живьём (raw): настоящей картинки под рукой
-   нет, битая иконка справке не к лицу. #}
+   нет, битая иконка справке не к лицу. Способы загрузки изображений —
+   → ARC-0047. #}
 <div class="mb-2">
     <button class="btn btn-sm btn-outline-secondary" type="button"
             data-bs-toggle="collapse" data-bs-target="#md-cheatsheet"
@@ -21,7 +22,7 @@
                     {'src': '> текст цитаты', 'note': '', 'raw': false},
                     {'src': '[текст ссылки](https://example.com)', 'note': '', 'raw': false},
                     {'src': '![описание картинки](uploads/картинка.jpg)',
-                     'note': 'путь подставится после загрузки картинки кнопкой в тулбаре', 'raw': true},
+                     'note': 'картинку загружай кнопкой в тулбаре, перетаскиванием в редактор или Ctrl+V из буфера — путь подставится сам', 'raw': true},
                 ] %}
                     <div class="col">
                         <div class="md-cheatsheet-item">
