@@ -227,3 +227,51 @@ class _WebUsers:
             WebEndpoints.USER.CHANGE_ROLE.format(username=username),
             data={"role": role},
         )
+
+    def change_display_name(self, username: str, display_name: str) -> TestResponse:
+        """POST смены отображаемого имени; редирект не следует автоматически.
+
+        Args:
+            username: логин владельца профиля.
+            display_name: новое отображаемое имя (пустая строка — сброс к логину).
+        """
+        return self._client.app_client.post(
+            WebEndpoints.USER.DISPLAY_NAME.format(username=username),
+            data={"display_name": display_name},
+        )
+
+    def upload_avatar(self, username: str, stream, filename: str) -> TestResponse:
+        """POST загрузки аватара; файл уходит multipart-полем 'file'.
+
+        Args:
+            username: логин владельца профиля.
+            stream: байтовый поток содержимого файла (BytesIO).
+            filename: имя файла с расширением — его проверяет валидация.
+        """
+        return self._client.app_client.post(
+            WebEndpoints.USER.AVATAR.format(username=username),
+            data={"file": (stream, filename)},
+            content_type="multipart/form-data",
+        )
+
+    def upload_avatar_no_file(self, username: str) -> TestResponse:
+        """POST аватара без поля 'file' — для проверки ошибки отсутствия файла.
+
+        Args:
+            username: логин владельца профиля.
+        """
+        return self._client.app_client.post(
+            WebEndpoints.USER.AVATAR.format(username=username),
+            data={},
+            content_type="multipart/form-data",
+        )
+
+    def reset_avatar(self, username: str) -> TestResponse:
+        """POST сброса аватара; редирект не следует автоматически.
+
+        Args:
+            username: логин владельца профиля.
+        """
+        return self._client.app_client.post(
+            WebEndpoints.USER.AVATAR_RESET.format(username=username),
+        )

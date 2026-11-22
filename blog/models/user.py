@@ -5,8 +5,14 @@ from typing import Any
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from blog.constants import Roles, role_includes
+from blog.constants import DISPLAY_NAME_MAX_LENGTH, Roles, role_includes
 from blog.extensions import db
+
+# ARC-0051: display_name необязателен и неуникален — при None интерфейс
+# показывает логин (свойство shown_name). Лимит длины — DISPLAY_NAME_MAX_LENGTH
+# из constants: единая точка с сервисной проверкой user_service.
+# avatar_filename — имя файла аватара в AVATAR_FOLDER (uuid4 + расширение);
+# None — аватара нет, показывается автогенерация по shown_name.
 
 
 class User(UserMixin, db.Model):
@@ -18,6 +24,8 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default=Roles.USER)
+    display_name = db.Column(db.String(DISPLAY_NAME_MAX_LENGTH), nullable=True)
+    avatar_filename = db.Column(db.String(64), nullable=True)
 
     posts = db.relationship(
         "Post",
@@ -34,16 +42,18 @@ class User(UserMixin, db.Model):
         passive_deletes=True,
     )
 
-    def __init__(self, username: str, role: str = Roles.USER):
+    def __init__(self, username: str, role: str = Roles.USER, display_name: str | None = None):
         """Пользователь.
 
         Args:
             username: Логин пользователя.
             role: Роль пользователя, по умолчанию USER.
+            display_name: Отображаемое имя; None — показывается логин.
         """
         super().__init__()
         self.username = username
         self.role = role
+        self.display_name = display_name
 
     @property
     def is_admin(self) -> bool:
@@ -55,6 +65,19 @@ class User(UserMixin, db.Model):
             True, если пользователь админ или супер-админ.
         """
         return role_includes(self.role, Roles.ADMIN)
+
+    @property
+    def shown_name(self) -> str:
+        """Имя для отображения в интерфейсе.
+
+        Единая точка решения «display_name или логин» (→ ARC-0051): шаблоны
+        используют только это свойство, прямой вывод username в интерфейсе —
+        только там, где логин нужен по своей прямой функции (админка, URL).
+
+        Returns:
+            display_name, если задан, иначе логин.
+        """
+        return self.display_name or self.username
 
     def set_password(self, raw_password: str):
         """Устанавливает пароль. Сохраняет его хэш в модель.

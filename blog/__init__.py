@@ -57,10 +57,11 @@ def create_app(test_config: dict | None = None) -> Flask:
     def request_too_large(e: Exception) -> tuple[ResponseValue, int]:
         """Обрабатывает превышение MAX_CONTENT_LENGTH (→ лимитный хвост).
 
-        Возникает до входа во вью (Werkzeug режет тело запроса), поэтому мимо web_errors и сервисов. Для /uploads —
-        JSON с понятным текстом: его покажет клиентский uploadImage из md_editor_init.js. Для прочих путей — короткий
-        JSON: тело больше 64 МБ обычный пользователь превысить не может. abort(413) внутри обработчика не используем:
-        повторный выброс той же ошибки уводит Flask в цикл.
+        Возникает до входа во вью (Werkzeug режет тело запроса), поэтому мимо web_errors и сервисов. Для загрузок
+        изображений (/uploads и POST /user/<username>/avatar) — JSON с понятным текстом: его покажут клиентские
+        uploadImage (md_editor_init.js) и виджет кропа аватара. Для прочих путей — короткий JSON: тело больше
+        64 МБ обычный пользователь превысить не может. abort(413) внутри обработчика не используем: повторный
+        выброс той же ошибки уводит Flask в цикл.
 
         Args:
             e: Перехваченная ошибка превышения лимита тела.
@@ -68,7 +69,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         Returns:
             (JSON с описанием ошибки, 413).
         """
-        if request.path.startswith("/uploads"):
+        if request.path.startswith("/uploads") or request.path.endswith("/avatar"):
             message = "Файл слишком большой — сервер принимает изображения до 50 МБ."
         else:
             message = "Запрос слишком большой."

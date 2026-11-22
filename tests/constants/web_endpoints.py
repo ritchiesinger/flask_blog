@@ -14,10 +14,13 @@ class Auth:
 
 @dataclass
 class User:
-    """WEB-эндпоинты профиля пользователя."""
+    """WEB-эндпоинты профиля пользователя (аватар и имя — → ARC-0051)."""
 
     PROFILE: str = "/user/{username}"
     CHANGE_ROLE: str = "/user/{username}/role"
+    DISPLAY_NAME: str = "/user/{username}/display_name"
+    AVATAR: str = "/user/{username}/avatar"
+    AVATAR_RESET: str = "/user/{username}/avatar/reset"
 
 
 @dataclass

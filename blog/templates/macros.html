@@ -1,7 +1,16 @@
 {# Переиспользуемые вёрсточные макросы. #}
 
-{% macro avatar(username) -%}
-<span class="avatar avatar-palette-{{ username | avatar_color }}">{{ username[:2] | upper }}</span>
+{# Аватар (→ ARC-0051): картинка из uploads/avatars, если есть; иначе автогенерация —
+   кружок с первыми двумя буквами shown_name, цвет по хешу логина (blog/avatar.py).
+   size — "sm" (2rem, по умолчанию) или "lg" (профиль, 12rem). Отдача — существующий
+   роут /uploads/<path>: детальная версия в avatars/, малый — в avatars/thumbs/.
+   Принимает объект пользователя (UserObject в тестах не годится — только db-модель с полями). #}
+{% macro avatar(user, size='sm') -%}
+{% if user.avatar_filename %}
+<img class="avatar avatar-img {{ 'avatar-lg' if size == 'lg' }}" src="{{ url_for('uploads.serve_image', filename=('avatars/' ~ user.avatar_filename if size == 'lg' else 'avatars/thumbs/' ~ user.avatar_filename)) }}" alt="Аватар {{ user.shown_name }}">
+{% else %}
+<span class="avatar {{ 'avatar-lg' if size == 'lg' }} avatar-palette-{{ user.username | avatar_color }}">{{ user.shown_name[:2] | upper }}</span>
+{% endif %}
 {%- endmacro %}
 
 {# pagination_nav (→ ARC-0046): общая постраничная навигация для всех лент — раньше три локальные копии (index,

@@ -102,18 +102,18 @@
   сверху», → ARC-0045; градиент, раскрытие через visually-hidden чекбокс) +
   анимация раскрытия (interpolate-size в @supports, prefers-reduced-motion; Firefox/Safari — мгновенное раскрытие);
   .post-clip img — max-width: 100% / height: auto (картинки в постах не выламывают вёрстку, → ARC-0033).
-- macros.html — переиспользуемые вёрсточные макросы: avatar(username) (→ ARC-0031) и pagination_nav(pagination,
+- macros.html — переиспользуемые вёрсточные макросы: avatar(user, size) (→ ARC-0051) и pagination_nav(pagination,
   endpoint) — общая постраничная навигация всех лент, раньше три локальные копии (→ ARC-0046): прочие аргументы
   URL — keyword-аргументами вызова (спецпеременная kwargs), page добавляет макрос через
   url_for(endpoint, **dict(kwargs, page=n)). Импорт макросов один — в base.html, дочерние шаблоны наследуют.
-- Семь JS-файлов в static/:
+- Восемь JS-файлов в static/:
   - autoclose_alerts.js — тосты .auto-close: появление через .show (re-flow хак offsetWidth), через 5 с снятие .show
     и удаление из DOM через 400 мс; уход по CSS-transition;
   - tooltip.js — bootstrap.Tooltip по `[data-bs-toggle="tooltip"]`;
   - confirm_action.js (→ ARC-0041, бывший confirm_delete.js) — #confirm-modal: разметка в base.html
     (data-bs-backdrop="static"; Escape закрывает модалку — осознанно, решение по итогам ручного тестирования);
-    data-action (delete_post/user/comment, change_role) → CONFIRM_ACTIONS: заголовок, текст и подпись кнопки
-    перезаписываются при каждом открытии (статичный текст base.html — заглушка); FALLBACK_* для действий без
+    data-action (delete_post/user/comment, change_role, reset_avatar) → CONFIRM_ACTIONS: заголовок, текст и подпись
+    кнопки перезаписываются при каждом открытии (статичный текст base.html — заглушка); FALLBACK_* для действий без
     записи; форма через closest('form'), submit по кнопке модалки,
     открытие через Modal.getOrCreateInstance(modalEl).show(btn);
   - expand_post.js — пересчёт «fits» для .post-clip: замер scrollHeight против высоты самого клипа из computed
@@ -122,6 +122,8 @@
     замер после «Свернуть» отложен до transitionend с таймер-фолбэком 500 мс (промежуточная высота анимации
     давала ложный fits: пост не сворачивался, обе кнопки пропадали; WeakSet animating не даёт ресайзу/load
     мерить клип в окне анимации; → ARC-0048);
+  - avatar_crop.js (→ ARC-0051) — кроп-виджет аватара, подключается только в profile.html (блок scripts);
+    детали — в ARC-0051;
   - md_editor_init.js — инициализация EasyMDE: #body, spellChecker/status off, minHeight 200px, кастомный toolbar
     (эмодзи-кнопка → ARC-0033; «Загрузить изображение» — imagePickerButton: скрытый input type=file, диалог
     выбора файла, вставка ![alt](url) в курсор, alt из имени файла через safeName (вырезает [ ] и \; → ARC-0049:
@@ -157,11 +159,14 @@
 - Кастомные CSS/JS — осознанное исключение из «чистого Bootstrap».
 - Канон шаблонов: иконочная кнопка = тултип + aria-label; якоря data-action (видимый текст кнопок вне покрытия
   — trade-off); формы удаления без id.
-- Аватар по умолчанию (→ ARC-0031): macros.html — макрос avatar(username) (первые 2 буквы логина, upper); CSS-класс
-  .avatar в blog.css (кружок, --bs-secondary-bg/secondary, 2rem, margin-right 0.5rem, flex-shrink 0); показ: хедер
-  (base.html), лента (index.html), пост+комментарии (view.html), админка (admin_users.html), профиль (profile.html).
-  Импорт макроса один — в base.html, дочерние шаблоны наследуют контекст. Картинок нет; раскраска по хешу сделана
-  (→ ARC-0037): blog/avatar.py — avatar_color(username), класс палитры avatar-palette-<md5>.
+- Аватары (→ ARC-0051): macros.html — макрос avatar(user, size) (→ ARC-0051) и (UserObject в тестах не годится —
+  только db-модель с полями); при avatar_filename — img из /uploads/avatars/ (sm — thumbs/), иначе автогенерация:
+  первые 2 буквы shown_name, цвет по хешу логина (→ ARC-0037). CSS: .avatar (кружок 2rem), .avatar-img
+  (object-fit: cover), .avatar-lg (квадрат 20rem = 320px; источник 400px показывается слегка уменьшенным —
+  25rem занимал почти весь экран профиля). Кроп в браузере — avatar_crop.js; сервер дорезает до квадрата
+  по центру и пережимает до AVATAR_SIZE/AVATAR_SMALL_SIZE (обход виджета не ломает результат). Файлы —
+  uploads/avatars/ (thumbs/ внутри), папку создаёт сервис при записи (→ ARC-0034, правка ARC-0051).
+  shown_name = display_name, если задан, иначе логин (→ ARC-0051).
 - Пагинация WEB-админки и админ-API (→ ARC-0032): USERS_PER_PAGE = 20 (константы — на сущность, не shared);
   blog/pagination.py — общие хелперы page_from_args/per_page_from_args(default)/tab_from_args(allowed, default)
   для WEB и API (первый общий WEB/API-код, рядом с constants.py); admin_service.list_users(page, per_page)
@@ -170,25 +175,27 @@
   переведена на общие хелперы.
 - Изображения в постах и эмодзи (→ ARC-0033): UPLOAD_FOLDER (папка uploads/ рядом с instance, в .gitignore),
   MAX_CONTENT_LENGTH = 64 МБ (серверная последняя инстанция; клиентский 50 МБ — MAX_IMAGE_SIZE в
-  md_editor_init.js; 413-хендлер в фабрике: /uploads → JSON с текстом лимита, прочие пути — общий текст;
-  пережатие оригинала до 1600 по большой стороне + миниатюра; flask make-thumbs — backfill миниатюр и пересборка
-  связей sync_all_post_links после чисток/правок; перед чисткой uploads — копия папки; → ARC-0044);
-  ALLOWED_IMAGE_EXTENSIONS и IMAGE_EXTENSION_ALIASES — в constants;
+  md_editor_init.js; 413-хендлер в фабрике: /uploads и POST .../avatar → JSON с текстом лимита, прочие пути —
+  общий текст; пережатие оригинала до 1600 по большой стороне + миниатюра; flask make-thumbs — backfill
+  миниатюр и пересборка связей sync_all_post_links после чисток/правок; перед чисткой uploads — копия папки;
+  → ARC-0044); ALLOWED_IMAGE_EXTENSIONS и IMAGE_EXTENSION_ALIASES — в constants;
   uploads_service.save_image — белый список расширений + magic bytes (сигнатуры в сервисе: imghdr выпилен
   из Python), имя uuid4, путь только из сгенерированного имени (../ исключён по построению), расхождение
-  расширения и сигнатуры — ошибка, не автозамена; + папка создаётся фабрикой create_app
-  (mkdir parents=True, exist_ok=True) (→ ARC-0034); web/uploads.py: POST /uploads (login_required, JSON {url})
+  расширения и сигнатуры — ошибка, не автозамена; папку создаёт сервис при записи, НЕ фабрика
+  (→ ARC-0034, правка ARC-0051); web/uploads.py: POST /uploads (login_required, JSON {url})
   и GET /uploads/<path> (публично, send_from_directory); EasyMDE унифицирован в md_editor_init.js
   (imageUploadFunction → POST /uploads, кнопка image) — инлайн-конфиг update.html удалён по канону ARC-0030;
   эмодзи — Unicode в тексте, нулевая серверная обработка; emoji_list.js (набор) + emoji_picker.js
   (fillEmojiPanel + авто-подключение по data-атрибутам); пикер на трёх формах: тулбар постов (create/update)
   и обе формы комментария (view, update); CLI clean-uploads — чистка сирот по UPLOAD_RE
-  (комментарии не сканируются — plain text по дизайну).
+  (комментарии не сканируются — plain text по дизайну; скан только верхнего уровня UPLOAD_FOLDER —
+  подпапка avatars мимо по построению, при рекурсивном сканировании правило перенести; → ARC-0051).
 
 ## 7. Тестовая архитектура
 - Структура tests/: constants/ (endpoints.py, web_endpoints.py), objects/ (user.py), preconditions/
   (app, users, posts, comments), tests/, tools/clients/ (api.py, api_user_facade.py, web_client.py,
-  custom_flask_client.py), tools/asserters/ (base_asserters.py, soft_asserters.py), unit_tests/, conftest.py.
+  custom_flask_client.py), tools/asserters/ (base_asserters.py, soft_asserters.py), tools/image_factory.py,
+  unit_tests/, conftest.py.
 - Allure через glamor (`import glamor as allure`, не смешивать с import allure). Слои @epic → @feature → @story →
   @title; happy path — BLOCKER, валидация/отказы — CRITICAL; @title на фикстурах обязателен. Шаги «Актёр. Слой.
   действие»; актёр — от чьего лица (гость — без актёра; «БД.»/«ORM.» — без).
@@ -205,7 +212,8 @@
   клиенты возвращают сырой ответ, без ассертов.
 - Api — фасад с разделами (api.users.list/delete/change_role(token=...)); ApiUserFacade — методы от имени
   пользователя (change_user_role, ...), раздела .users у него НЕТ (→ ARC-0041). WebClient —
-  .auth/.posts/.comments/.admin/.uploads/.users (.users.profile, .users.change_role).
+  .auth/.posts/.comments/.admin/.uploads/.users (.users.profile, .users.change_role, .users.change_display_name,
+  .users.upload_avatar(+no_file), .users.reset_avatar; → ARC-0053).
 - Фасад пользователя открывает все действия своей роли, включая пассивные чтения без токена (get_posts_list,
   get_comments_list); тонкая ретрансляция — контракт, не дублирование (→ ARC-0035).
 - Канон фикстур: ORM-объекты — commit → refresh → attach/to_dict → expunge; после expunge — только скаляры
@@ -217,12 +225,14 @@
   фикстура описывает результат в титуле, шаги — по общему канону (→ ARC-0034).
 - api.py: BaseClient (_post/_patch/_get/_delete; _get принимает query); фильтр «if value» — None и пустая строка
   не уходят в тело (осознанный контракт).
-- Эндпоинты — dataclass-константы, шаблонные пути через .format(...). WebEndpoints.USER.CHANGE_ROLE.
+- Эндпоинты — dataclass-константы, шаблонные пути через .format(...). WebEndpoints.USER.CHANGE_ROLE,
+  WebEndpoints.USER.DISPLAY_NAME/AVATAR/AVATAR_RESET (→ ARC-0053).
   Ассертеры: assert_status_code, assert_condition, assert_redirect, SoftAssert (чеки внутрь SoftAssert —
   только с soft_assert=True, иначе исполняются сразу и вернут None; → ARC-0041).
 - CLI: invoke_cli(app, command, args, hidden=()) — клик зовётся только через него. CLI — интерфейс, НЕ юнит.
   Юниты: tests/unit_tests/ — без Allure-обвязки; ветки, недостижимые через интерфейсы, безинтерфейсные места
-  и гварды (регистрация CLI — test_cli_registration.py, → ARC-0043).
+  и гварды (регистрация CLI — test_cli_registration.py, → ARC-0043). Раскладка покрытия: до-БД ветки — юниты
+  на detached-моделях, успех (БД+диск) — интерфейсные пакеты (→ ARC-0053).
 - WEB-канон: точные редиректы — assert_redirect (302 + Location одним шагом; отдельный GET с флешем сохраняется;
   → ARC-0035); исключения — негативная проверка «Location не ведёт наружу» и startswith(LOGIN) при гостевом next —
   на assert_status_code + assert_condition, асертер под особые случаи не подгоняется (вернуться к опциональному
@@ -276,7 +286,6 @@
 9. Обсуждение проблем безопасности. Итогом будет серия задач в бэклог. Например: 1) Подтверждение регистрации
    (двухфакторка), 2) Капчи там где это требуется, 3) Борьба с брутфорсом при логине (и не только), возможно что-то
    ещё (нужна помощь AI).
-10. Аватарки: картинки-аватары (раскраска по хешу сделана → ARC-0037).
 11. Тесты WEB-пагинации админки: зеркальное трио TestIndexPagination (шаблон и роут готовы → ARC-0032,
     отдельных тестов нет — расхождение с каноном «каждая пагинация накрыта трио»).
 12. Markdown в комментариях: сейчас plain text (закреплено тестом). Развилка: включить рендер через render_markdown +
@@ -297,19 +306,12 @@
 16. Обсуждение небольшой UX-проблемы. Ссылка обратно в ленту со страницы поста ведёт к "якорю" поста, но система
     пагинации в большинстве случаев обнуляет это удобство, т.к ссылка не знает на какой странице находится пост и
     ведёт на самую свежую - удобный переход обратно в ленту к посту происходит только для пяти свежих постов.
-18. Профиль: базовая версия готова (→ ARC-0037), ленты на вкладках (→ ARC-0039). Осталось: журнал изменений
-    сущностей; дифференциация данных (владелец — максимум, гость — ограниченно, админ — всё), реквизиты
-    (кроме пароля). Новые разделы — строкой в карту _FEEDS.
+18. Профиль: базовая версия готова (→ ARC-0037), ленты на вкладках (→ ARC-0039), display_name и аватары сделаны
+    (→ ARC-0051, покрыто тестами → ARC-0053). Осталось: журнал изменений сущностей; дифференциация данных
+    (владелец — максимум, гость — ограниченно, админ — всё), реквизиты (кроме пароля). Новые разделы — строкой
+    в карту _FEEDS.
 20. WEB-тесты: кандидат setup_logged_in_admin; нюанс — test_menu_item_visibility меняет двух пользователей на
     одном клиенте, две «авторизованные» фикстуры на один клиент не расходятся без аккуратности (→ ARC-0035).
-24. display_name для пользователя. На момент заведения задачи в бэклог - во всех местах пользователь отображается как
-    логин и аватарка (которая сгенерирована из букв логина). Нужно добавить в профиль пользователя свойство
-    display_name (название можно обсудить), которое заменит в интерфейсе логин (логин остаётся для своей прямой
-    функции). Свойство необязательное (и без требований к уникальности, несколько пользователей могут иметь одинаковый
-    display_name), при его отсутствии - используется, как и ранее, логин. Автосгенерированная аватарка в случае
-    указания display_name - перегенерируется на основе display_name - первые буквы нового display_name, цвет
-    генерируется на основе login (чтобы сохранить уникальность аватарки - комбинация display_name + цвет является
-    уникальной в силу уникальности логина).
 26. Адаптивная Bootstrap-вёрстка. Здесь AI не основной помощник, только в случаях когда надо будет перевёрстывать
     табличную вёрстку в блочную (собственно сами таблицы обычно). Это всё в чистом виде работа "про красоту". Цель
     раунда - определить целевые разрешения (из набора Bootstrap) и поверстать так чтобы было красиво для них всех.
@@ -320,9 +322,11 @@
     микро-раундом с тестом (вернуть канон 100%) или принять как известное отклонение.
 
 ## 10. Текущее состояние
-- Счёт (прогон 2026-11-21): 257 тестов; Ruff — ноль; покрытие — 99% (1035 stmts, 0 miss, 130 branch, 1 partial:
-  post_service.py 129->125 — отложено в п. 27 бэклога).
+- Счёт (прогон 2026-11-22): 282 теста; Ruff — ноль; покрытие — 99% (1162 stmts, 0 miss, 164 branch, 1 partial:
+  post_service.py 129->125 — п. 27 бэклога). Чистое состояние подтверждено (→ ARC-0053).
 - Последние раунды: → ARC-0038 → ARC-0039 → ARC-0040 → ARC-0041 → ARC-0042 → ARC-0043 → ARC-0044 → ARC-0045
-  → ARC-0046 → ARC-0047 → ARC-0048 → ARC-0049.
-- Активных раундов нет. Allure-отчёты устраивают; за поведением glamor — наблюдение (скрытые teardown-шаги,
-  «?» у несработавших постусловий).
+  → ARC-0046 → ARC-0047 → ARC-0048 → ARC-0049 → ARC-0050 → ARC-0051 → ARC-0052 → ARC-0053 (ARC-0050 — резервный
+  номер, свободен, подтверждено 2026-11-22).
+- Активных раундов нет: раунд аватаров (код → ARC-0051, тесты и верификация → ARC-0053) закрыт.
+  Allure-отчёты устраивают; за поведением glamor — наблюдение (скрытые teardown-шаги, «?» у несработавших
+  постусловий).

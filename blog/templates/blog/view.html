@@ -29,8 +29,8 @@
 <article class="card mb-3">
     <div class="card-body">
         <div class="small mb-3">
-            <a class="mb-1 mt-1" href="{{ url_for('user.profile', username=post.author.username) }}" aria-label="Профиль пользователя {{ post.author.username }}">{{ avatar(post.author.username) }}</a>
-            <span class="text-muted">Автор: {{ post.author.username }}, Дата: {{ post.created.strftime('%Y-%m-%d %H:%M') }}</span>
+            <a class="mb-1 mt-1" href="{{ url_for('user.profile', username=post.author.username) }}" aria-label="Профиль пользователя {{ post.author.shown_name }}">{{ avatar(post.author) }}</a>
+            <span class="text-muted">Автор: {{ post.author.shown_name }}, Дата: {{ post.created.strftime('%Y-%m-%d %H:%M') }}</span>
         </div>
         <div class="post-body">{{ post.body | markdown | safe }}</div>
         <hr>
@@ -39,11 +39,11 @@
         <div class="card mt-3 shadow" id="comment-{{ comment.id }}">
             <div class="card-header">
                 <div class="d-flex align-items-center">
-                    <a class="mb-1 mt-1" href="{{ url_for('user.profile', username=comment.author.username) }}" aria-label="Профиль пользователя {{ comment.author.username }}">
-                    {{ avatar(comment.author.username) }}
+                    <a class="mb-1 mt-1" href="{{ url_for('user.profile', username=comment.author.username) }}" aria-label="Профиль пользователя {{ comment.author.shown_name }}">
+                    {{ avatar(comment.author) }}
                     </a>
                     <div>
-                        <strong>{{ comment.author.username }}</strong>
+                        <strong>{{ comment.author.shown_name }}</strong>
                         <span class="text-muted small ms-2">{{ comment.created.strftime('%Y-%m-%d %H:%M') }}</span>
                     </div>
                 </div>

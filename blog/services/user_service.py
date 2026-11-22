@@ -5,11 +5,19 @@ from collections.abc import Callable
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy.orm import joinedload
 
-from blog.constants import POSTS_PER_PAGE, PROFILE_TAB_COMMENTS, PROFILE_TAB_POSTS, Roles, role_includes
+from blog.constants import (
+    DISPLAY_NAME_MAX_LENGTH,
+    POSTS_PER_PAGE,
+    PROFILE_TAB_COMMENTS,
+    PROFILE_TAB_POSTS,
+    Roles,
+    role_includes,
+)
 from blog.extensions import db
 from blog.models.comment import Comment
 from blog.models.post import Post
 from blog.models.user import User
+from blog.services import avatar_service
 
 from .base_errors import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 
@@ -113,8 +121,9 @@ def promote_to_superadmin(username: str) -> User:
 def delete_user(user_id: int) -> None:
     """Удаляет пользователя без проверки прав (CLI — читерский слой).
 
-    Посты и комментарии уходят каскадом на уровне БД; загруженные картинки
-    остаются до чистки clean-uploads.
+    Посты и комментарии уходят каскадом на уровне БД; аватарные файлы удаляются
+    сразу после commit (→ ARC-0051) — аватары не имеют строк в БД, чистить их
+    командой не из чего. Постовые картинки остаются до чистки clean-uploads.
 
     Args:
         user_id: Идентификатор пользователя.
@@ -123,8 +132,48 @@ def delete_user(user_id: int) -> None:
         NotFoundError: Пользователь не существует.
     """
     user = get_user_by_id(user_id)
+    avatar_name = user.avatar_filename
     db.session.delete(user)
     db.session.commit()
+    if avatar_name:
+        avatar_service.delete_avatar_files(avatar_name)  # после commit: сбой файлов не теряет БД-состояние
+
+
+def change_display_name(username: str, new_name: str | None, *, actor: User) -> User:
+    """Меняет отображаемое имя пользователя. Доступно только владельцу.
+
+    Имя необязательное и неуникальное (→ ARC-0051): пустое значение после strip —
+    сброс (display_name обнуляется, интерфейс показывает логин). Лимит длины —
+    DISPLAY_NAME_MAX_LENGTH. Гвард «только владелец» здесь defense-in-depth:
+    WEB-роут прячет действие 404 раньше (как в смене роли, → ARC-0041).
+
+    Args:
+        username: Логин пользователя, чьё имя меняется.
+        new_name: Новое отображаемое имя; None или пустое — сброс на логин.
+        actor: Действующий пользователь; менять имя может только владелец.
+
+    Returns:
+        Обновлённая модель пользователя.
+
+    Raises:
+        ForbiddenError: Актёр не владелец профиля.
+        BadRequestError: Имя длиннее DISPLAY_NAME_MAX_LENGTH.
+        NotFoundError: Пользователь не существует.
+    """
+    if actor.username != username:
+        raise ForbiddenError("Отображаемое имя меняет только владелец профиля")
+    user = get_user_by_username(username)
+    cleaned = (new_name or "").strip()
+    if not cleaned:
+        user.display_name = None
+    elif len(cleaned) > DISPLAY_NAME_MAX_LENGTH:
+        raise BadRequestError(
+            f"Отображаемое имя не может быть длиннее {DISPLAY_NAME_MAX_LENGTH} символов"
+        )
+    else:
+        user.display_name = cleaned
+    db.session.commit()
+    return user
 
 
 def list_user_posts(user_id: int, page: int = 1, per_page: int = POSTS_PER_PAGE) -> Pagination:

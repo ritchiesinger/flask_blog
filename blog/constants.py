@@ -12,6 +12,10 @@ PROFILE_TABS = (PROFILE_TAB_POSTS, PROFILE_TAB_COMMENTS)
 
 COMMENTS_PER_PAGE = 10
 
+# Лимит отображаемого имени (display_name, → ARC-0051): единая точка для
+# колонки модели и сервисной проверки длины.
+DISPLAY_NAME_MAX_LENGTH = 50
+
 # Допустимые расширения загружаемых изображений (первый фильтр по имени;
 # реальный формат содержимого определяет Pillow, → ARC-0044).
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -30,6 +34,13 @@ JPEG_QUALITY = 85
 # Каноничное расширение по формату содержимого (Pillow format): имя файла
 # генерируется под верный формат — PNG под именем .jpg становится .png.
 IMAGE_FORMAT_EXTENSIONS = {"PNG": "png", "JPEG": "jpg", "GIF": "gif", "WEBP": "webp"}
+
+# Аватарки (→ ARC-0051): пользователь кропает в браузере (виджет), сервер
+# дорежет до квадрата по центру и хранит два квадрата — AVATAR_SIZE (профиль;
+# 400 вместо 512 — решение пользователя: 512 занимал почти весь видимый
+# экран в профиле) и AVATAR_SMALL_SIZE (кружок 2rem с запасом на retina).
+AVATAR_SIZE = 400
+AVATAR_SMALL_SIZE = 64
 
 
 @dataclass

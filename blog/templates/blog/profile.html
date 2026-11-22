@@ -1,14 +1,59 @@
 {% extends 'base.html' %}
-{% block title %}Профиль {{ profile_user.username }}{% endblock %}
+{% block title %}Профиль {{ profile_user.shown_name }}{% endblock %}
 {% block header %}<h3 class="mb-3">Профиль пользователя</h3>{% endblock %}
 {% block content %}
 <div class="card mb-4">
     <div class="card-body">
-        <div class="d-flex align-items-center">
-            {{ avatar(profile_user.username) }}
-            <h4 class="mb-0">{{ profile_user.username }}</h4>
+        <div class="d-flex align-items-center mb-2">
+            {% if not profile_user.avatar_filename %}<div>{{ avatar(profile_user) }}</div>{% endif %}
+            <div><h4 id="profile-header">{{ profile_user.shown_name }}</h4></div>
+            {% if profile_user.display_name %}<div class="text-muted small ms-2" data-bs-toggle="tooltip" data-bs-title="Логин пользователя">@{{ profile_user.username }}</div>{% endif %}
             <span class="badge {{ role_badges[profile_user.role] }} ms-2" style="line-height: 1.4">{{ role_titles[profile_user.role] }}</span>
         </div>
+        {% if profile_user.avatar_filename %}
+        <div class="d-flex align-items-center mb-2">{{ avatar(profile_user, 'lg') }}</div>
+        {% endif %}
+        {% if is_owner %}
+        <div class="d-flex gap-2">
+            <form id="avatar-upload-form"
+                  method="post"
+                  action="{{ url_for('user.upload_avatar', username=profile_user.username) }}"
+                  enctype="multipart/form-data"
+                  class="d-flex gap-2 align-items-center">
+                <label class="col-form-label">Аватар</label>
+                <input type="file"
+                       name="file"
+                       accept="image/png,image/jpeg,image/gif,image/webp"
+                       class="form-control w-auto"
+                       aria-label="Файл аватара"
+                       required>
+                <button type="submit" class="btn btn-outline-primary" id="avatar-upload-submit">Загрузить</button>
+            </form>
+            {% if profile_user.avatar_filename %}
+            <form method="post" action="{{ url_for('user.reset_user_avatar', username=profile_user.username) }}" class="d-inline">
+                <button type="submit"
+                        class="btn btn-outline-danger"
+                        data-action="reset_avatar"
+                        data-bs-toggle="tooltip"
+                        data-bs-title="Сбросить аватар"
+                        aria-label="Сбросить аватар">
+                    Сбросить
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        <form method="post" action="{{ url_for('user.change_display_name', username=profile_user.username) }}" class="d-flex gap-2 mt-2">
+            <label class="col-form-label">Отображаемое имя</label>
+            <input class="form-control w-auto"
+                   type="text"
+                   name="display_name"
+                   value="{{ profile_user.display_name or '' }}"
+                   maxlength="50"
+                   aria-label="Отображаемое имя"
+                   placeholder="{{ profile_user.shown_name }}">
+            <button type="submit" class="btn btn-outline-primary">Сохранить</button>
+        </form>
+        {% endif %}
         {% if can_change_role %}
         <form method="post" action="{{ url_for('user.change_role', username=profile_user.username) }}" class="d-flex gap-2 mt-3">
             Изменить роль:
@@ -96,4 +141,35 @@
 {% endif %}
 {{ pagination_nav(pagination, 'user.profile', username=profile_user.username, tab=tab) }}
 </div>
+{% if is_owner %}
+<div class="modal fade" id="avatar-crop-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Кадрирование аватара</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div class="avatar-crop-stage mx-auto">
+                    <img id="avatar-crop-image" class="avatar-crop-image" alt="">
+                </div>
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <i class="bi bi-zoom-out" aria-hidden="true"></i>
+                    <input type="range" id="avatar-crop-zoom" class="form-range" min="1" max="3" step="0.01" value="1" aria-label="Масштаб">
+                    <i class="bi bi-zoom-in" aria-hidden="true"></i>
+                </div>
+                <p class="md-cheatsheet-note mt-2 mb-0">Перетаскивай картинку мышью, масштабируй слайдером или колесом. Анимированный GIF при кадрировании теряет анимацию — останется первый кадр.</p>
+                <div id="avatar-crop-error" class="alert alert-danger py-2 mt-2 mb-0" hidden></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="avatar-crop-apply">Применить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='avatar_crop.js') }}"></script>
 {% endblock %}

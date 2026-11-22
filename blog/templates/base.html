@@ -12,7 +12,7 @@
 </head>
 <body class="bg-light d-flex flex-column min-vh-100">
     <div class="container">
-        <header class="d-flex flex-wrap py-3 mb-3 border-bottom">
+        <header class="d-flex flex-wrap pt-3 pb-2 mb-3 border-bottom">
             <div class="d-flex flex-wrap col-md-9">
                 <a href="{{ url_for('blog.index') }}" class="d-flex link-body-emphasis text-decoration-none">
                     <svg fill="#000000" class="bi me-2" width="40" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
@@ -28,16 +28,16 @@
                     {% endif %}
                 </ul>
             </div>
-            <div class="col-md-3 text-end">
+            <div class="col-md-3 d-flex justify-content-end align-items-center">
                 {% if current_user.is_authenticated %}
-                <a class="d-inline-flex align-items-center navbar-text me-2 text-decoration-none" href="{{ url_for('user.profile', username=current_user.username) }}" aria-label="Профиль пользователя {{ current_user.username }}">
-                    {{ avatar(current_user.username) }}
-                    <span>{{ current_user.username }}</span>
+                <a class="d-inline-flex align-items-center navbar-text me-2 text-decoration-none" href="{{ url_for('user.profile', username=current_user.username) }}" aria-label="Профиль пользователя {{ current_user.shown_name }}">
+                    {{ avatar(current_user) }}
+                    <span>{{ current_user.shown_name }}</span>
                 </a>
                 <a class="btn btn-primary" href="{{ url_for('auth.logout') }}" data-action="logout">Выйти</a>
                 {% else %}
                 <a class="btn btn-outline-primary" href="{{ url_for('auth.register') }}">Регистрация</a>
-                <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Войти</a>
+                <a class="btn btn-primary ms-1" href="{{ url_for('auth.login') }}">Войти</a>
                 {% endif %}
             </div>
         </header>
@@ -106,5 +106,6 @@
     <script src="{{ url_for('static', filename='autoclose_alerts.js') }}"></script>
     <script src="{{ url_for('static', filename='tooltip.js') }}"></script>
     <script src="{{ url_for('static', filename='confirm_action.js') }}"></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

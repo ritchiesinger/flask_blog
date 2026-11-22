@@ -91,3 +91,19 @@ def setup_logged_in_user(setup_test_user: UserObject) -> UserObject:
         response = user.web.auth.login(username=user.db_model.username, password=user.password)
         assert_redirect(expect="/", response=response)
     return user
+
+
+@fixture
+@title("ORM. Создана модель пользователя")
+def setup_test_user_model() -> User:
+    """Собирает отсоединённую модель пользователя."""
+    user = User(username=f"{Roles.USER}_{fake.user_name()}", role=Roles.USER)
+    return user
+
+
+@fixture
+@title("ORM. Создана модель администратора")
+def setup_test_admin_model() -> User:
+    """Собирает отсоединённую модель администратора."""
+    user = User(username=f"{Roles.ADMIN}_{fake.user_name()}", role=Roles.ADMIN)
+    return user

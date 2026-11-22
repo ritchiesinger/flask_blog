@@ -13,6 +13,7 @@
                 <tr>
                     <th scope="col">ID</th>
                     <th scope="col">Username</th>
+                    <th scope="col">Отображаемое имя</th>
                     <th scope="col">Роль</th>
                     <th scope="col" class="text-end">Действия</th>
                 </tr>
@@ -21,10 +22,11 @@
                 {% for user in users %}
                 <tr>
                     <td>{{ user.id }}</td>
-                    <td>
-                        <a class="d-inline-flex align-items-center navbar-text text-decoration-none" href="{{ url_for('user.profile', username=user.username) }}" aria-label="Профиль пользователя {{ user.username }}">{{ avatar(user.username) }}</a>
+                    <td class="mt-1 d-flex align-items-center">
+                        <a class="d-inline-flex align-items-center navbar-text text-decoration-none" href="{{ url_for('user.profile', username=user.username) }}" aria-label="Профиль пользователя {{ user.username }}">{{ avatar(user) }}</a>
                         <a class="d-inline-flex align-items-center navbar-text text-decoration-none" href="{{ url_for('user.profile', username=user.username) }}" aria-label="Профиль пользователя {{ user.username }}">{{ user.username }}</a>
                     </td>
+                    <td>{{ user.display_name or '—' }}</td>
                     <td><span class="badge {{ role_badges[user.role] }}" style="line-height: 1.4">{{ role_titles[user.role] }}</span></td>
                     <td class="text-end">
                         <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}" class="d-inline">

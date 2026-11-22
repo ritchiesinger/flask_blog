@@ -185,3 +185,45 @@
     color: var(--bs-secondary-color);
     font-size: 0.875rem;
 }
+
+/* Аватар-картинка (→ ARC-0051): img внутри аватара; object-fit — квадраты одного размера, деформации не бывает */
+.avatar-img {
+    object-fit: cover;
+    padding: 0;
+}
+
+/* Крупный аватар профиля: квадрат — размер подобран под видимую часть экрана профиля; источник AVATAR_SIZE = 400px.
+   sm остаётся кружком — border-radius перекрывается здесь, ниже по файлу */
+.avatar-lg {
+    width: 20rem;
+    height: 20rem;
+    font-size: 5rem;
+    border-radius: 0.5rem;
+}
+
+/* Кроп-виджет аватара: ширина области обязана совпадать с CROP_VIEWPORT в avatar_crop.js (320px). touch-action:
+   none — перетаскивание пальцем не скроллит страницу; max-width: none — bootstrap-правило для img не режет картинку
+   виджета. */
+.avatar-crop-stage {
+    width: 320px;
+    max-width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    position: relative;
+    background: var(--bs-tertiary-bg);
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+}
+.avatar-crop-stage:active {
+    cursor: grabbing;
+}
+.avatar-crop-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+    pointer-events: none;
+    max-width: none;
+}

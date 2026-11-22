@@ -1,8 +1,7 @@
-"""Юнит-тесты сервиса ролей: гварды change_role до обращения к БД.
+"""Юнит-тесты сервиса ролей и профиля: гварды change_role и change_display_name до обращения к БД.
 
-Успешная смена роли (нужна БД) накрыта API- и WEB-пакетами; здесь — три
-запретных пути, каждый срабатывает до первого запроса к БД, как канон
-test_admin_service.
+Успешные ветки обеих функций (нужна БД) накрыты API- и WEB-пакетами; здесь — запретные
+пути, каждый срабатывает до первого запроса к БД, как канон test_admin_service.
 """
 
 from glamor import epic, feature, severity, severity_level, step, story, title
@@ -11,7 +10,7 @@ from pytest import raises
 from blog.constants import Roles
 from blog.models import User
 from blog.services.base_errors import BadRequestError, ForbiddenError
-from blog.services.user_service import change_role
+from blog.services.user_service import change_display_name, change_role
 from tests.tools.asserters.base_asserters import assert_equal
 
 
@@ -64,18 +63,46 @@ class TestChangeRoleServiceGuard:
     def test_superadmin_role_not_assignable(self):
         """SUPERADMIN и прочие роли вне поверхности → BadRequestError до БД.
 
-        Роль уникальна и через интерфейсы не выдаётся (→ ARC-0041).
+        Роль уникальна и через интерфейсы не выдаётся: её единственный канал — CLI
+        (→ ARC-0041), поверхность смены — только USER <-> ADMIN.
         """
-        with step("MODEL. Создание супер-админа-актёра и цели с иным id"):
+        with step("MODEL. Создание супер-админа-актёра и цели с явным id"):
             actor = User(username="boss", role=Roles.SUPERADMIN)
             actor.id = 1
             target = User(username="target")
             target.id = 2
-        with step("User. SERVICE. Попытка выдать роль SUPERADMIN через сервис"):
+        with step("User. SERVICE. Попытка назначения роли SUPERADMIN"):
             with raises(BadRequestError) as exc_info:
                 change_role(user_id=target.id, new_role=Roles.SUPERADMIN, actor=actor)
         assert_equal(
-            expect=f"Роль '{Roles.SUPERADMIN}' недоступна для назначения",
+            expect="Роль 'superadmin' недоступна для назначения",
             actual=str(exc_info.value),
             name="Текст BadRequestError",
+        )
+
+
+@epic("UNIT")
+@feature("Профиль пользователя", "Аватары пользователя")
+@story("Смена отображаемого имени")
+class TestChangeDisplayNameServiceGuard:
+    """Сервисная защита change_display_name: имя меняет только владелец."""
+
+    @severity(severity_level.CRITICAL)
+    @title("Не-владелец получает ForbiddenError до обращения к БД")
+    def test_non_owner_raises_forbidden(self):
+        """Чужой актёр → ForbiddenError до первого запроса к БД.
+
+        WEB-роут отсекает не-владельца 404-ом до сервиса (скрытое действие), поэтому через интерфейсы
+        ветка недостижима — юнит по канону defense-in-depth (→ ARC-0041).
+        """
+        with step("MODEL. Создание владельца и чужого актёра"):
+            _ = User(username="owner")
+            actor = User(username="stranger")
+        with step("User. SERVICE. Попытка смены имени чужим актёром"):
+            with raises(ForbiddenError) as exc_info:
+                change_display_name(username="owner", new_name="Взломано", actor=actor)
+        assert_equal(
+            expect="Отображаемое имя меняет только владелец профиля",
+            actual=str(exc_info.value),
+            name="Текст ForbiddenError",
         )
