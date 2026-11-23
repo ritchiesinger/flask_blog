@@ -282,3 +282,34 @@ class TestMakeThumbs:
                 error_text="Файл связанного поста удалён чисткой!",
             )
 
+    @severity(severity_level.CRITICAL)
+    @title("Пересборка не меняет связи поста без картинок")
+    def test_sync_post_without_images_reports_zero(self, setup_app: Flask, setup_test_user: UserObject):
+        """Пост без ссылок на изображения: набор связей пуст и до, и после sync.
+
+        Идемпотентность sync_all_post_links на посте с неизменными связями:
+        пустой before сравнивается с пустым after, счётчик изменений — ноль.
+        """
+        upload_folder = Path(setup_app.config["UPLOAD_FOLDER"])
+        upload_folder.mkdir(parents=True, exist_ok=True)
+
+        with step("Подготовка. ORM. Пост без ссылок на картинки"):
+            with setup_app.app_context():
+                db.session.add(Post(
+                    title="Пост без картинок",
+                    body="Просто текст без изображений.",
+                    author_id=setup_test_user.db_model.id,
+                ))
+                db.session.commit()
+
+        with step("Оператор. CLI. make-thumbs с постом без картинок"):
+            result = invoke_cli(setup_app, make_thumbs, [])
+            assert_equal(expect=0, actual=result.exit_code, name="Exit code")
+            assert_condition(
+                condition=(
+                    "Принято в БД: 0. Сгенерировано миниатюр: 0." in result.output
+                    and "Связей пересобрано: 0." in result.output
+                ),
+                allure_step_name="Счётчики нулевые: связи не изменились",
+                error_text=f"Неожиданный вывод команды: {result.output}",
+            )
