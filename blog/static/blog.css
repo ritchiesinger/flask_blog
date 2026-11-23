@@ -5,7 +5,9 @@
         interpolate-size: allow-keywords;
     }
 }
-
+body {
+  background-image: url('images/bg.jpg');
+}
 .post-clip {
     height: 24rem;         /* тизер: картинка сверху видна целиком, до ~16 строк текста */
     overflow: hidden;
