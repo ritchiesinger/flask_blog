@@ -1,8 +1,12 @@
 'use strict';
-// Пикер эмодзи: наполнение панели + авто-подключение к форме
-// комментария (view.html). Тулбар EasyMDE вызывает ту же функцию
-// наполнения (md_editor_init.js). Панель = контейнер .emoji-picker,
-// hidden атрибут управляет видимостью (CSS: .emoji-picker[hidden]).
+// Наполнение панели эмодзи для тулбара EasyMDE (вызывается из md_editor_init.js).
+// Подключается во всех шаблонах с редактором: create.html, update.html,
+// view.html, comment_update.html — перед md_editor_init.js (порядок важен:
+// эмодзи-кнопка тулбара вызывает fillEmojiPanel).
+// Раньше панель подключалась и к формам комментариев напрямую (вставка в
+// textarea по data-action="emoji-toggle") — снято в п. 28: с EasyMDE текст
+// живёт в CodeMirror, вставка в textarea ломалась. Единый механизм —
+// тулбар редактора на всех формах (→ ARC-0054).
 
 // Наполняет панель кнопками эмодзи; клик вызывает onPick и закрывает панель.
 function fillEmojiPanel(panel, onPick) {
@@ -16,45 +20,5 @@ function fillEmojiPanel(panel, onPick) {
             panel.hidden = true;
         });
         panel.appendChild(item);
-    });
-}
-
-// Форма комментария: кнопка с data-action="emoji-toggle" открывает
-// панель [data-emoji-panel], клик по эмодзи вставляет символ в textarea.
-const commentForm = document.querySelector('form[action*="comment_create"]');
-if (commentForm) {
-    const textarea = commentForm.querySelector('textarea');
-    const toggle = commentForm.querySelector('[data-action="emoji-toggle"]');
-    const panel = commentForm.querySelector('[data-emoji-panel]');
-    if (textarea && toggle && panel) {
-        panel.hidden = true;
-        fillEmojiPanel(panel, (emoji) => {
-            textarea.value += emoji;
-            panel.hidden = true;
-            textarea.focus();
-        });
-        toggle.addEventListener('click', () => {
-            panel.hidden = !panel.hidden;
-        });
-    }
-}
-
-// Форма комментария: кнопка [data-action="emoji-toggle"] открывает
-// панель [data-emoji-panel] внутри той же формы, клик по эмодзи вставляет
-// символ в textarea. Привязка по data-атрибутам — URL формы мог бы
-// измениться, а поведение обязано пережить это без правок.
-const toggle = document.querySelector('[data-action="emoji-toggle"]');
-if (toggle) {
-    const form = toggle.closest('form');
-    const textarea = form.querySelector('textarea');
-    const panel = form.querySelector('[data-emoji-panel]');
-    panel.hidden = true;
-    fillEmojiPanel(panel, (emoji) => {
-        textarea.value += emoji;
-        panel.hidden = true;
-        textarea.focus();
-    });
-    toggle.addEventListener('click', () => {
-        panel.hidden = !panel.hidden;
     });
 }

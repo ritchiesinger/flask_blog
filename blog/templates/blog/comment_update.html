@@ -10,14 +10,15 @@
     </ol>
 </nav>
 <form method="post">
-    <textarea class="form-control mb-3" name="body" rows="4" required placeholder="Текст комментария...">{{ comment.body }}</textarea>
-    <div class="d-flex align-items-center position-relative mt-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-action="emoji-toggle" aria-label="Эмодзи">🙂</button>
-        <div class="emoji-picker" data-emoji-panel hidden></div>
-        <button type="submit" class="btn btn-primary ms-auto">Сохранить</button>
+    <textarea class="form-control mb-3" name="body" data-mde="comment" placeholder="Текст комментария...">{{ comment.body }}</textarea>
+    <div class="d-flex align-items-center justify-content-end">
+        <button type="submit" class="btn btn-primary">Сохранить</button>
         <a class="btn btn-secondary ms-2" href="{{ url_for('blog.view', post_id=comment.post_id) }}#comments">Отмена</a>
     </div>
 </form>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.css">
+<script src="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.js"></script>
 <script src="{{ url_for('static', filename='emoji_list.js') }}"></script>
 <script src="{{ url_for('static', filename='emoji_picker.js') }}"></script>
+<script src="{{ url_for('static', filename='md_editor_init.js') }}"></script>
 {% endblock %}

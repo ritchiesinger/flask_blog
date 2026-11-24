@@ -1,12 +1,14 @@
 'use strict';
-// Инициализация EasyMDE для поля #body (редактор поста).
-// Подключается в create.html и update.html (конец <body>) — единая точка
+// Инициализация EasyMDE: поле поста #body и текстарии комментариев
+// [data-mde="comment"]. Подключается в create.html, update.html,
+// view.html, comment_update.html (конец <body>) — единая точка
 // конфигурации, инлайн-скрипты в шаблонах запрещены (канон ARC-0030).
-// Сверху на базовый конфиг добавлены: загрузка изображений (imageUploadFunction
-// → POST /uploads) с индикатором прогресса (fetch → XHR ради upload.onprogress;
-// → ARC-0047), кнопка «Загрузить изображение» вместо дефолтной image (дефолтная
-// только вставляла шаблон ![](), диалог выбора файла не открывала; → ARC-0047)
-// и кнопка эмодзи с общей панелью из emoji_picker.js.
+// Порядок загрузки скриптов: emoji_list.js → emoji_picker.js → этот файл
+// (эмодзи-кнопка тулбара вызывает fillEmojiPanel из emoji_picker.js).
+// Конфигурации (→ ARC-0054): пост — кастомный тулбар с загрузкой
+// изображений (→ ARC-0047) и эмодзи-кнопкой; комментарий — тулбар зеркалит
+// базовый уровень render_markdown: заголовок и картинка кнопками НЕ даются,
+// nh3 их снимает — тулбар обещает только то, что реально отрендерится.
 
 // Лимит загрузки изображения — одна константа для собственной проверки
 // uploadImage и конфига EasyMDE, чтобы цифры не расходились. Порог высок
@@ -19,6 +21,7 @@ const MAX_IMAGE_SIZE = 50 * 1024 * 1024;
 const MAX_IMAGE_SIZE_MB = MAX_IMAGE_SIZE / (1024 * 1024);
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const ERROR_HIDE_DELAY = 5000; // мс до скрытия плашки с текстом ошибки
+const COMMENT_MIN_HEIGHT = '120px'; // редактор комментария компактнее поста
 
 // Плашка индикатора (Bootstrap .progress) живёт внутри контейнера редактора
 // сразу под тулбаром, создаётся один раз. Прогресс и ошибки показываются в ней
@@ -166,7 +169,8 @@ function imagePickerButton() {
 }
 
 // Кнопка эмодзи в тулбаре: панель открывается под кнопкой, клик вставляет
-// символ в позицию курсора.
+// символ в позицию курсора. Единый механизм вставки для всех форм — раньше
+// комментарии вставляли в textarea, что ломалось на CodeMirror (→ ARC-0054).
 function emojiToolbarButton() {
     return {
         name: 'emoji',
@@ -195,16 +199,47 @@ function emojiToolbarButton() {
     };
 }
 
-new EasyMDE({
-    element: document.getElementById('body'),
-    spellChecker: false,
-    status: false,
-    minHeight: '200px',
-    uploadImage: true,
-    imageUploadFunction: uploadImage,
-    imageMaxSize: MAX_IMAGE_SIZE,
-    imageAccept: 'image/png, image/jpeg, image/gif, image/webp',
-    toolbar: ['bold', 'italic', 'heading', '|',
-              'unordered-list', 'ordered-list', 'quote', 'code', '|',
-              'link', imagePickerButton(), emojiToolbarButton(), '|', 'preview', 'guide'],
-});
+// Тулбар комментария — зеркало базового уровня render_markdown: только то,
+// что рендерится (заголовок и картинка исключены сознательно). Кнопка эмодзи —
+// на той же позиции, что в постах.
+function commentToolbar() {
+    return ['bold', 'italic', 'strikethrough', '|',
+            'code', 'quote', 'unordered-list', 'ordered-list', '|',
+            'link', emojiToolbarButton(), '|', 'preview', 'guide'];
+}
+
+// Пост: #body с загрузкой изображений и полным кастомным тулбаром.
+function initPostEditor() {
+    const element = document.getElementById('body');
+    if (!element) return;
+    new EasyMDE({
+        element: element,
+        spellChecker: false,
+        status: false,
+        minHeight: '200px',
+        uploadImage: true,
+        imageUploadFunction: uploadImage,
+        imageMaxSize: MAX_IMAGE_SIZE,
+        imageAccept: 'image/png, image/jpeg, image/gif, image/webp',
+        toolbar: ['bold', 'italic', 'heading', '|',
+                  'unordered-list', 'ordered-list', 'quote', 'code', '|',
+                  'link', imagePickerButton(), emojiToolbarButton(), '|', 'preview', 'guide'],
+    });
+}
+
+// Комментарий: текстария помечается data-mde="comment" в шаблоне;
+// загрузка изображений не подключается — картинки в комментариях не место.
+function initCommentEditor() {
+    const element = document.querySelector('textarea[data-mde="comment"]');
+    if (!element) return;
+    new EasyMDE({
+        element: element,
+        spellChecker: false,
+        status: false,
+        minHeight: COMMENT_MIN_HEIGHT,
+        toolbar: commentToolbar(),
+    });
+}
+
+initPostEditor();
+initCommentEditor();

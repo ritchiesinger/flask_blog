@@ -29,7 +29,9 @@
 │   │   ├── 📄 avatar_service.py          — сохранение аватара: квадрат, пережатие AVATAR_SIZE/SMALL, папка при записи (→ ARC-0051)
 │   │   ├── 📄 base_errors.py             — ServiceError (500) → NotFound/Forbidden/BadRequest/Conflict (404/403/400/409)
 │   │   ├── 📄 comment_service.py         — list_for_post/get/create/update/delete → Pagination (→ ARC-0040)
-│   │   ├── 📄 markdown.py                — render_markdown: "" → "", иначе mistune → nh3.clean (порядок обязателен); → ARC-0015
+│   │   ├── 📄 markdown.py                — два уровня рендера: render_markdown (посты) / render_markdown_basic
+│   │   │                                   (комментарии), реестр _PLUGINS + _build_renderer; mistune → nh3 —
+│   │   │                                   порядок обязателен (→ ARC-0015, ARC-0050)
 │   │   ├── 📄 permissions.py             — ensure_allowed: единая модель прав контента (→ ARC-0038)
 │   │   ├── 📄 post_service.py            — CRUD постов + sync_all_post_links (→ ARC-0044, ARC-0054)
 │   │   ├── 📄 uploads_service.py         — save_image: whitelist расширений + magic bytes, имя uuid4 (→ ARC-0044)
@@ -40,10 +42,12 @@
 │   │   ├── 📄 blog.css                   — тизер ленты, тост-стек, шпаргалка, аватары (→ ARC-0016, ARC-0045)
 │   │   ├── 📄 confirm_action.js          — #confirm-modal, CONFIRM_ACTIONS, form через closest (→ ARC-0020, ARC-0041)
 │   │   ├── 📄 emoji_list.js              — набор эмодзи пикера (→ ARC-0033)
-│   │   ├── 📄 emoji_picker.js            — fillEmojiPanel + авто-подключение (→ ARC-0033; переработка в п. 28)
+│   │   ├── 📄 emoji_picker.js            — fillEmojiPanel: наполнение панели; вызывается тулбаром EasyMDE
+│   │   │                                   (→ ARC-0033, ARC-0050: textarea-механизм снят)
 │   │   ├── 📄 expand_post.js             — fits тизера, замер scrollHeight (→ ARC-0045, ARC-0048)
 │   │   ├── 📄 favicon.ico                — иконка сайта
-│   │   ├── 📄 md_editor_init.js          — EasyMDE + загрузка изображений POST /uploads (→ ARC-0044, ARC-0047)
+│   │   ├── 📄 md_editor_init.js          — EasyMDE для постов (#body) и комментариев ([data-mde="comment"]);
+│   │   │                                   загрузка изображений — только посты (→ ARC-0044, ARC-0047, ARC-0050)
 │   │   └── 📄 tooltip.js                 — bootstrap.Tooltip по data-bs-toggle (→ ARC-0018)
 │   ├── 📁 templates
 │   │   ├── 📁 admin
@@ -53,12 +57,13 @@
 │   │   │   └── 📄 register.html          — регистрация
 │   │   ├── 📁 blog
 │   │   │   ├── 📄 _cheatsheet.html       — шпаргалка Markdown, живой рендер (→ ARC-0042)
-│   │   │   ├── 📄 comment_update.html    — форма правки комментария (→ ARC-0022)
+│   │   │   ├── 📄 comment_update.html    — форма правки комментария: EasyMDE (→ ARC-0022, ARC-0050)
 │   │   │   ├── 📄 create.html            — форма поста: EasyMDE + шпаргалка (→ ARC-0015)
 │   │   │   ├── 📄 index.html             — лента: тизер, карточки, навигация (→ ARC-0016)
 │   │   │   ├── 📄 profile.html           — профиль: вкладки, кроп, role-контролы (→ ARC-0039, ARC-0051)
 │   │   │   ├── 📄 update.html            — форма правки: сырой Markdown в textarea (→ ARC-0015)
-│   │   │   └── 📄 view.html              — страница поста: комментарии, пикер в форме
+│   │   │   └── 📄 view.html              — страница поста: комментарии (markdown_basic), EasyMDE-форма
+│   │   │                                   комментария (→ ARC-0050)
 │   │   ├── 📁 errors
 │   │   │   ├── 📄 404.html               — фирменная 404 (ловит и роутинг, и NotFoundError)
 │   │   │   └── 📄 500.html               — фирменная 500
@@ -73,7 +78,7 @@
 │   │   ├── 📄 uploads.py                 — POST /uploads (login_required), GET /uploads/<path> публично (→ ARC-0033)
 │   │   └── 📄 user.py                    — профиль, role, display_name, avatar (→ ARC-0039, ARC-0051)
 │   ├── 📄 __init__.py                    — фабрика create_app: blueprints, extensions, loaders, errorhandler 404/500,
-│   │                                       413-хендлер, add_command всех CLI (→ ARC-0008, ARC-0041)
+│   │                                       413-хендлер, add_command всех CLI, фильтры markdown/markdown_basic (→ ARC-0008, ARC-0041, ARC-0050)
 │   ├── 📄 avatar.py                      — avatar_color(username): детерминированный оттенок по MD5 (не hash() —
 │   │                                       тот нестабилен между запусками), класс палитры blog.css (→ ARC-0037)
 │   ├── 📄 cli.py                         — все CLI: make-admin, create-admin, clean-uploads, make-superadmin,
@@ -105,7 +110,7 @@
 │   │   ├── 📄 comments_preconditions.py  — создание комментариев
 │   │   ├── 📄 posts_preconditions.py     — создание постов
 │   │   └── 📄 users_preconditions.py     — create_user, setup_logged_in_user (→ ARC-0035)
-│   ├── 📁 tests                          — интерфейсные тесты (API/WEB/CLI), Allure-обвязка; 283 прогона
+│   ├── 📁 tests                          — интерфейсные тесты (API/WEB/CLI), Allure-обвязка; 293 прогона
 │   │   └── 📄 test_*.py                  — по доменам: api_*, web_*, cli_*, *_service/model
 │   ├── 📁 tools
 │   │   ├── 📁 asserters
@@ -120,7 +125,7 @@
 │   │   │                                   и вывода в Allure, маскировка паролей hidden
 │   │   └── 📄 image_factory.py           — генерация тестовых изображений (→ ARC-0044)
 │   ├── 📁 unit_tests                     — юниты без Allure: гварды, ветки вне интерфейсов (→ ARC-0006)
-│   │   └── 📄 test_*.py                  — test_cli_registration и компания (→ ARC-0043)
+│   │   └── 📄 test_*.py                  — test_cli_registration и компания (→ ARC-0043, ARC-0050: рельс PLUGINS)
 │   ├── 📄 __init__.py                    — пакет tests (→ ARC-0054: без него bare pytest ломает импорты)
 │   └── 📄 conftest.py                    — PRAGMA foreign_keys=ON, pytest_plugins = tests.preconditions.* (→ ARC-0054)
 ├── 📄 .gitignore                         — uploads/, кэши, instance

@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from glamor import epic, feature, severity, severity_level, step, story, title
 
+import blog.services.markdown as markdown_module
 from blog.services.markdown import render_markdown
 from tests.tools.asserters.base_asserters import assert_condition
 from tests.tools.asserters.soft_asserters import SoftAssert
@@ -59,13 +60,13 @@ class TestRenderMarkdownConverts:
                 ),
                 assert_condition(
                     "<h2>Два</h2>" in html,
-                    allure_step_name="Рендер заголовка первого уровня в HTML возвращает <h2>",
+                    allure_step_name="Рендер заголовка второго уровня в HTML возвращает <h2>",
                     error_text="<h2> не найден в HTML!",
                     soft_assert=True,
                 ),
                 assert_condition(
                     "<h3>Три</h3>" in html,
-                    allure_step_name="Рендер заголовка первого уровня в HTML возвращает <h3>",
+                    allure_step_name="Рендер заголовка третьего уровня в HTML возвращает <h3>",
                     error_text="<h3> не найден в HTML!",
                     soft_assert=True,
                 ),
@@ -114,6 +115,206 @@ class TestRenderMarkdownConverts:
             allure_step_name="Картинка рендерится в img с исходным src",
             error_text=f"Картинка не дожила до HTML: {html}",
         )
+
+
+@epic("UNIT")
+@feature("Markdown")
+@story("Реестр плагинов расширенного уровня")
+class TestPluginRegistry:
+    """Рельс кастомных плагинов (→ ARC-0054): подключение работает (→ ARC-0050).
+
+    Пока реестр пуст, цикл подключения не выполняется ни разу — проверка
+    рельса строит рендер с подменённым реестром и dummy-плагином.
+    Markdown.use принимает только вызываемый плагин; строковые имена
+    резолвит лишь create_markdown(plugins=[...]).
+    """
+
+    @title("Плагин из реестра применяется к рендеру")
+    def test_registry_plugin_applied(self, monkeypatch):
+        """Dummy-плагин вызывается при сборке рендера: рельс работает."""
+        calls = []
+
+        def dummy_plugin(md):
+            calls.append(type(md).__name__)
+
+        monkeypatch.setattr(markdown_module, "_PLUGINS", {"dummy": dummy_plugin})
+        with step("Сборка рендера с подменённым реестром"):
+            markdown_module._build_renderer()
+        assert_condition(
+            condition=len(calls) == 1 and calls[0] == "Markdown",
+            allure_step_name="Плагин из реестра вызван с объектом рендера",
+            error_text=f"Плагин не вызван при сборке рендера: {calls}",
+        )
+
+
+@epic("UNIT")
+@feature("Markdown")
+@story("Базовый уровень: комментарии")
+@severity(severity_level.BLOCKER)
+class TestRenderMarkdownBasic:
+    """Базовый уровень — whitelisted-подмножество Markdown (→ ARC-0054).
+
+    Одобренный набор: жирный, курсив, зачёркнутый, код (inline и блок),
+    цитаты, списки, ссылки. Заголовки/таблицы — теги снимаются, текст
+    сохраняется; картинки — видны синтаксисом, а не тегом.
+    """
+
+    @title("Пустая строка даёт пустой выход (базовый уровень)")
+    def test_empty_source_renders_empty(self):
+        """Пустая строка даёт пустой выход и на базовом уровне."""
+        assert_condition(
+            render_markdown("", basic=True) == "",
+            allure_step_name="Рендер пустой строки в базовом уровне возвращает пустую строку",
+            error_text="Базовый уровень вернул артефакты на пустой строке!",
+        )
+
+    @title("Успешный рендер одобренного набора")
+    def test_basic_renders_approved_set(self):
+        """Жирный, курсив, зачёркнутый, код, цитата, список, ссылка — доживают."""
+        with step("Рендеринг полного одобренного набора"):
+            html = render_markdown(
+                "**жирный** *курсив* ~~зачёркнутый~~ `код`\n\n> цитата\n\n- один\n- два\n\n[сайт](https://example.com)",
+                basic=True,
+            )
+            SoftAssert(
+                assert_condition(
+                    "<strong>жирный</strong>" in html,
+                    allure_step_name="Жирный дожил до <strong>",
+                    error_text=f"<strong> не найден: {html}",
+                    soft_assert=True,
+                ),
+                assert_condition(
+                    "<em>курсив</em>" in html,
+                    allure_step_name="Курсив дожил до <em>",
+                    error_text=f"<em> не найден: {html}",
+                    soft_assert=True,
+                ),
+                assert_condition(
+                    "~~" not in html and "зачёркнутый" in html,
+                    allure_step_name="Зачёркнутый отрендерился тегом без тильд",
+                    error_text=f"Зачёркивание не отрендерилось: {html}",
+                    soft_assert=True,
+                ),
+                assert_condition(
+                    "<code>код</code>" in html,
+                    allure_step_name="Inline-код дожил до <code>",
+                    error_text=f"<code> не найден: {html}",
+                    soft_assert=True,
+                ),
+                assert_condition(
+                    'blockquote class="blockquote"' in html,
+                    allure_step_name="Цитата дожила до blockquote с Bootstrap-классом",
+                    error_text=f"Цитата не найдена: {html}",
+                    soft_assert=True,
+                ),
+                assert_condition(
+                    "<li>один</li>" in html,
+                    allure_step_name="Элемент списка дожил до <li>",
+                    error_text=f"<li> не найден: {html}",
+                    soft_assert=True,
+                ),
+                assert_condition(
+                    'href="https://example.com"' in html,
+                    allure_step_name="Ссылка сохранила URL",
+                    error_text=f"href не найден: {html}",
+                    soft_assert=True,
+                ),
+            )
+
+    @title("Заголовок деградирует до текста")
+    def test_heading_degrades_to_text(self):
+        """Заголовков в комментариях нет: тег снимается, текст сохраняется."""
+        with step("Рендеринг заголовка в базовом уровне"):
+            html = render_markdown("# Раз\n\nОбычный текст", basic=True)
+            SoftAssert(
+                assert_condition(
+                    "<h1>" not in html,
+                    allure_step_name="Тег заголовка снят санитизацией",
+                    error_text=f"Тег заголовка выжил вне базового набора: {html}",
+                    soft_assert=True,
+                ),
+                assert_condition(
+                    "Раз" in html,
+                    allure_step_name="Текст заголовка сохранён",
+                    error_text=f"Текст заголовка потерян: {html}",
+                    soft_assert=True,
+                ),
+                assert_condition(
+                    "<p>Обычный текст</p>" in html,
+                    allure_step_name="Обычный абзац не задет деградацией заголовка",
+                    error_text=f"Абзац не сохранился: {html}",
+                    soft_assert=True,
+                ),
+            )
+
+    @title("Флаг не ломает расширенный уровень")
+    def test_extended_still_renders_heading(self):
+        """Посты (basic=False) по-прежнему рендерят заголовки."""
+        assert_condition(
+            "<h1>Раз</h1>" in render_markdown("# Раз"),
+            allure_step_name="Расширенный уровень сохраняет заголовок",
+            error_text="Флаг сломал расширенный уровень: заголовок пропал!",
+        )
+
+    @title("Картинка показывается синтаксисом, а не тегом")
+    def test_image_shown_as_literal_text(self):
+        """![alt](url) в комментариях виден текстом: молчаливого исчезновения нет."""
+        html = render_markdown("![кот](/uploads/abc.png)", basic=True)
+        SoftAssert(
+            assert_condition(
+                "<img" not in html,
+                allure_step_name="Тег img не рендерится в базовом уровне",
+                error_text=f"img выжил вне базового набора: {html}",
+                soft_assert=True,
+            ),
+            assert_condition(
+                "![кот](/uploads/abc.png)" in html,
+                allure_step_name="Синтаксис картинки виден как текст",
+                error_text=f"Синтаксис картинки потерян: {html}",
+                soft_assert=True,
+            ),
+        )
+
+    @title("Переносы — базовое поведение Markdown, без nl2br")
+    def test_line_breaks_use_base_markdown_behavior(self):
+        """Одиночный перенос не превращается в <br>: решение пользователя (→ ARC-0054)."""
+        html = render_markdown("первая строка\nвторая строка", basic=True)
+        SoftAssert(
+            assert_condition(
+                "<br>" not in html,
+                allure_step_name="Одиночный перенос не стал <br>",
+                error_text=f"nl2br пробрался в базовый уровень: {html}",
+                soft_assert=True,
+            ),
+            assert_condition(
+                "первая строка" in html and "вторая строка" in html,
+                allure_step_name="Обе строки текста сохранились",
+                error_text=f"Текст потерян: {html}",
+                soft_assert=True,
+            ),
+        )
+
+
+@epic("UNIT")
+@feature("Markdown")
+@story("Безопасность базового уровня")
+@severity(severity_level.CRITICAL)
+class TestRenderMarkdownBasicSecurity:
+    """Опасные конструкции не выживают и на базовом уровне."""
+
+    @title("Сырой HTML экранируется без потери содержимого")
+    def test_raw_html_neutralized(self):
+        """Script экранируется, текст не молча теряется."""
+        html = render_markdown("До <script>alert(1)</script> После", basic=True)
+        assert "<script" not in html.lower()
+        assert "alert(1)" in html
+        assert "После" in html
+
+    @title("javascript: URL не выживает")
+    def test_javascript_url_stripped(self):
+        """Обход через валидный синтаксис ссылок закрыт и на базовом уровне."""
+        html = render_markdown("[клик](javascript:alert(1))", basic=True)
+        assert "javascript:" not in html
 
 
 @epic("UNIT")

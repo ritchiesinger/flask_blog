@@ -8,7 +8,7 @@ from flask.typing import ResponseValue
 import blog.loaders  # noqa: F401 (импорт ради регистрации)
 from blog.avatar import avatar_color
 from blog.extensions import db, jwt, login_manager, migrate
-from blog.services.markdown import render_markdown
+from blog.services.markdown import render_markdown, render_markdown_basic
 
 
 def create_app(test_config: dict | None = None) -> Flask:
@@ -35,6 +35,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     migrate.init_app(app, db)  # включает команду flask db
     login_manager.init_app(app)
     app.jinja_env.filters["markdown"] = render_markdown
+    app.jinja_env.filters["markdown_basic"] = render_markdown_basic
     app.jinja_env.filters["avatar_color"] = avatar_color
     jwt.init_app(app)
 

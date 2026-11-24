@@ -67,10 +67,14 @@ class TestView:
                 error_text="Форма комментария не видна авторизованному пользователю!",
             )
 
-    @title("Комментарий отображается с автором и без markdown-разметки")
-    @severity(severity_level.CRITICAL)
-    def test_comment_plain_text(self, setup_test_user: UserObject, setup_test_user_post: dict[str, Any]):
-        """Markdown-синтаксис в комментарии остаётся видимым текстом, а не превращается в разметку."""
+    @title("Markdown в комментарии рендерится базовым уровнем")
+    @severity(severity_level.BLOCKER)
+    def test_comment_markdown_renders(self, setup_test_user: UserObject, setup_test_user_post: dict[str, Any]):
+        """Markdown-синтаксис превращается в HTML (→ ARC-0054): смена семантики принята осознанно.
+
+        Старая семантика «синтаксис виден как текст» снята раундом А:
+        тест переписан с экранирования на рендер базовым уровнем.
+        """
         user, post, body = setup_test_user, setup_test_user_post, "**Жирный** markdown"
         with step("Пользователь. WEB. Авторизация"):
             response = user.web.auth.login(username=user.db_model.username, password=user.password)
@@ -80,9 +84,48 @@ class TestView:
         with step("Пользователь. WEB. Проверка страницы поста"):
             page = user.web.comments.view_post(post_id=post["id"]).get_data(as_text=True)
             assert_condition(
-                condition=body in page,
-                allure_step_name="Синтаксис markdown виден как текст",
-                error_text="Комментарий отрендерен markdown-ом — должно быть экранирование!",
+                condition="<strong>Жирный</strong>" in page,
+                allure_step_name="Синтаксис отрендерен в <strong>",
+                error_text="Markdown комментария не отрендерился в разметку!",
+            )
+            assert_condition(
+                condition="**Жирный**" not in page,
+                allure_step_name="Синтаксис звёздочек не виден как текст",
+                error_text="Markdown-синтаксис остался видимым текстом — рендер не применился!",
+            )
+
+    @title("Сырой HTML в комментарии экранируется, текст сохраняется")
+    @severity(severity_level.CRITICAL)
+    def test_comment_raw_html_escaped(self, setup_test_user: UserObject, setup_test_user_post: dict[str, Any]):
+        """Script в комментарии виден экранированной формой, содержимое не молча теряется.
+
+        Экранированная форма `&lt;script&gt;` — точный признак: mistune
+        (escape=True) экранирует тег, nh3 проводит его как текст. Проверка
+        «&lt;script не встречается» невозможна: страница поста легитимно
+        содержит теги <script> подключаемых редакторов (→ ARC-0054).
+        """
+        user, post, body = setup_test_user, setup_test_user_post, "До <script>alert(1)</script> После"
+        with step("Пользователь. WEB. Авторизация"):
+            response = user.web.auth.login(username=user.db_model.username, password=user.password)
+            assert_status_code(expect=302, response=response)
+        with step("Пользователь. WEB. Создание комментария с сырым HTML"):
+            assert_status_code(expect=302, response=user.web.comments.create_comment(post_id=post["id"], body=body))
+        with step("Пользователь. WEB. Проверка страницы поста"):
+            page = user.web.comments.view_post(post_id=post["id"]).get_data(as_text=True)
+            assert_condition(
+                condition="&lt;script" in page and "&lt;/script&gt;" in page,
+                allure_step_name="Тег script виден экранированной формой",
+                error_text="Script не экранирован рендером комментария!",
+            )
+            assert_condition(
+                condition="<script>alert" not in page and "<script>alert(1)</script>" not in page,
+                allure_step_name="Исполняемая последовательность тега не живёт в выводе",
+                error_text="Script тегом пробрался на страницу поста!",
+            )
+            assert_condition(
+                condition="alert(1)" in page and "После" in page,
+                allure_step_name="Содержимое не потеряно при экранировании",
+                error_text="Текст внутри script потерян вместо экранирования!",
             )
 
 
