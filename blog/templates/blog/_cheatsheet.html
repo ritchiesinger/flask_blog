@@ -3,7 +3,8 @@
    render_markdown. Подключается в create.html/update.html после #body.
    Пример картинки не рендерится живьём (raw): настоящей картинки под рукой
    нет, битая иконка справке не к лицу. Способы загрузки изображений —
-   → ARC-0047. #}
+   → ARC-0047. Пример видео (ARC-0052) рендерится живьём: iframe в карточке —
+   самопроверка плагина :::video. #}
 <div class="mb-2">
     <button class="btn btn-sm btn-outline-secondary" type="button"
             data-bs-toggle="collapse" data-bs-target="#md-cheatsheet"
@@ -23,6 +24,8 @@
                     {'src': '[текст ссылки](https://example.com)', 'note': '', 'raw': false},
                     {'src': '![описание картинки](uploads/картинка.jpg)',
                      'note': 'картинку загружай кнопкой в тулбаре, перетаскиванием в редактор или Ctrl+V из буфера — путь подставится сам', 'raw': true},
+                    {'src': ':::video[https://www.youtube.com/watch?v=dQw4w9WgXcQ]',
+                     'note': 'видео отдельным абзацем; для VK бери ссылку или код из кнопки «Встроить» (в ней есть hash); другой домен станет обычной ссылкой', 'raw': false},
                 ] %}
                     <div class="col">
                         <div class="md-cheatsheet-item">

@@ -229,3 +229,21 @@ body {
     pointer-events: none;
     max-width: none;
 }
+
+/* Встраивание видео плагина :::video (ARC-0052): контейнер 16:9, iframe
+   растягивается на всю площадь — видео в посте и шпаргалке не ломает
+   вёрстку, как картинки (→ ARC-0033). */
+.video-embed {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    margin: 1rem 0;
+}
+
+.video-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
