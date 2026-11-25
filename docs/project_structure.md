@@ -31,7 +31,8 @@
 │   │   ├── 📄 comment_service.py         — list_for_post/get/create/update/delete → Pagination (→ ARC-0040)
 │   │   ├── 📄 markdown.py                — два уровня рендера: render_markdown (посты) / render_markdown_basic
 │   │   │                                   (комментарии), реестр _PLUGINS + _build_renderer; block-плагин :::video
-│   │   │                                   (YouTube/VK); mistune → nh3 — порядок обязателен (→ ARC-0015, ARC-0050, ARC-0052)
+│   │   │                                   (YouTube/VK/RuTube); mistune → nh3 —
+│   │   │                                   порядок обязателен (→ ARC-0015, ARC-0050, ARC-0052, ARC-0056)
 │   │   ├── 📄 permissions.py             — ensure_allowed: единая модель прав контента (→ ARC-0038)
 │   │   ├── 📄 post_service.py            — CRUD постов + sync_all_post_links (→ ARC-0044, ARC-0054)
 │   │   ├── 📄 uploads_service.py         — save_image: whitelist расширений + magic bytes, имя uuid4 (→ ARC-0044)
@@ -126,8 +127,8 @@
 │   │   │                                   и вывода в Allure, маскировка паролей hidden
 │   │   └── 📄 image_factory.py           — генерация тестовых изображений (→ ARC-0044)
 │   ├── 📁 unit_tests                     — юниты без Allure: гварды, ветки вне интерфейсов (→ ARC-0006)
-│   │   └── 📄 test_*.py                  — test_cli_registration, test_markdown_video (плагин :::video: 20 юнитов,
-│   │                                       сборка/деградация/безопасность/гвард; → ARC-0043, ARC-0050, ARC-0052)
+│   │   └── 📄 test_*.py                  — test_cli_registration, test_markdown_video (плагин :::video: 26 юнитов,
+│   │                                       YouTube/VK/RuTube; → ARC-0043, ARC-0050, ARC-0052, ARC-0056)
 │   ├── 📄 __init__.py                    — пакет tests (→ ARC-0054: без него bare pytest ломает импорты)
 │   └── 📄 conftest.py                    — PRAGMA foreign_keys=ON, pytest_plugins = tests.preconditions.* (→ ARC-0054)
 ├── 📄 .gitignore                         — uploads/, кэши, instance

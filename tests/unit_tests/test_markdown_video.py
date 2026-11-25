@@ -1,4 +1,4 @@
-"""Юнит-тесты плагина :::video: сборка embed, деградация, безопасность (→ ARC-0052)."""
+"""Юнит-тесты плагина :::video: сборка embed, деградация, безопасность (→ ARC-0052; RuTube → ARC-0056)."""
 from types import SimpleNamespace
 
 from glamor import epic, feature, severity, severity_level, story, title
@@ -9,6 +9,11 @@ from tests.tools.asserters.soft_asserters import SoftAssert
 
 YOUTUBE_ID = "dQw4w9WgXcQ"
 YOUTUBE_WATCH = f"https://www.youtube.com/watch?v={YOUTUBE_ID}"
+RUTUBE_ID = "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+RUTUBE_EMBED = f"https://rutube.ru/play/embed/{RUTUBE_ID}"
+RUTUBE_EMBED_PRIVATE = f"{RUTUBE_EMBED}/?p=secretKey123"
+RUTUBE_PAGE = f"https://rutube.ru/video/{RUTUBE_ID}/"
+RUTUBE_PAGE_PRIVATE = f"https://rutube.ru/video/private/{RUTUBE_ID}/?p=secretKey123"
 
 
 @epic("UNIT")
@@ -16,7 +21,7 @@ YOUTUBE_WATCH = f"https://www.youtube.com/watch?v={YOUTUBE_ID}"
 @severity(severity_level.BLOCKER)
 @story("Плагин :::video: сборка embed из проверенных компонентов")
 class TestVideoEmbed:
-    """Валидные ссылки YouTube и VK дают iframe с embed-адресом (→ ARC-0052).
+    """Валидные ссылки YouTube, VK и RuTube дают iframe с embed-адресом (→ ARC-0052, ARC-0056).
 
     nh3 экранирует & внутри значений атрибутов (&amp;) — ассерты src
     сверяются по этому виду, браузер расшифрует его обратно в &.
@@ -176,6 +181,69 @@ class TestVideoEmbed:
             error_text=f"Хвост ссылки просочился в iframe: {html}",
         )
 
+    @title("RuTube embed-адрес проносится в iframe как есть")
+    def test_rutube_embed_verbatim(self):
+        """Адрес из «Код вставки плеера» не пересобирается (→ ARC-0056)."""
+        html = render_markdown(f":::video[{RUTUBE_EMBED}]")
+        assert_condition(
+            condition=f'src="{RUTUBE_EMBED}"' in html,
+            allure_step_name="embed-адрес RuTube в src без изменений",
+            error_text=f"Адрес был пересобран или искажён: {html}",
+        )
+
+    @title("RuTube embed с ключом приватности проносится как есть")
+    def test_rutube_embed_private_verbatim(self):
+        """Ключ ?p= приватного ролика «по ссылке» обязан доехать до плеера."""
+        html = render_markdown(f":::video[{RUTUBE_EMBED_PRIVATE}]")
+        assert_condition(
+            condition=f'src="{RUTUBE_EMBED_PRIVATE}"' in html,
+            allure_step_name="embed с ключом p в src без изменений",
+            error_text=f"Ключ приватности потерялся: {html}",
+        )
+
+    @title("Публичная страница RuTube пересобирается в embed")
+    def test_rutube_page_rebuilt(self):
+        """Ссылка «Поделиться» /video/<id>/ пересобирается в play/embed — hash нет, безопасно."""
+        html = render_markdown(f":::video[{RUTUBE_PAGE}]")
+        assert_condition(
+            condition=f'src="{RUTUBE_EMBED}"' in html,
+            allure_step_name="страница пересобрана в play/embed",
+            error_text=f"Страница не пересобралась: {html}",
+        )
+
+    @title("Приватная страница RuTube пересобирается вместе с ключом")
+    def test_rutube_private_page_rebuilt(self):
+        """Ключ ?p=KEY из приватной ссылки переносится в embed-адрес."""
+        html = render_markdown(f":::video[{RUTUBE_PAGE_PRIVATE}]")
+        assert_condition(
+            condition=f'src="{RUTUBE_EMBED_PRIVATE}"' in html,
+            allure_step_name="страница пересобрана, ключ p перенесён",
+            error_text=f"Ключ приватности потерялся: {html}",
+        )
+
+    @title("iframe-сниппет RuTube разбирается, чужие атрибуты не просачиваются")
+    def test_rutube_embed_snippet(self):
+        """Код вставки плеера можно вставить как есть — URL вынимается из сниппета."""
+        snippet = (
+            f'<iframe width="720" height="405" src="{RUTUBE_EMBED}" '
+            'frameBorder="0" allow="autoplay; fullscreen;" allowfullscreen></iframe>'
+        )
+        html = render_markdown(f":::video[{snippet}]")
+        SoftAssert(
+            assert_condition(
+                condition=f'src="{RUTUBE_EMBED}"' in html,
+                allure_step_name="URL вынут из сниппета RuTube",
+                error_text=f"Сниппет не разобрался: {html}",
+                soft_assert=True,
+            ),
+            assert_condition(
+                condition='width="720"' not in html,
+                allure_step_name="чужие атрибуты сниппета не просочились",
+                error_text=f"Атрибуты сниппета просочились: {html}",
+                soft_assert=True,
+            ),
+        )
+
 
 @epic("UNIT")
 @feature("Markdown")
@@ -212,6 +280,17 @@ class TestVideoDegradation:
         assert_condition(
             condition="iframe" not in html and "abcdefghij" in html,
             allure_step_name="короткий ID дал ссылку вместо iframe",
+            error_text=f"Неполный ID собрал iframe: {html}",
+        )
+
+    @title("RuTube ID не из 32 hex-символов деградирует")
+    def test_rutube_short_id_becomes_link(self):
+        """Неполный ID (31 hex) не проходит whitelist длины (→ ARC-0056)."""
+        short = RUTUBE_ID[:-1]
+        html = render_markdown(f":::video[https://rutube.ru/video/{short}/]")
+        assert_condition(
+            condition="iframe" not in html and short in html,
+            allure_step_name="короткий ID RuTube дал ссылку вместо iframe",
             error_text=f"Неполный ID собрал iframe: {html}",
         )
 
