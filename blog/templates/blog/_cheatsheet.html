@@ -3,8 +3,8 @@
    render_markdown. Подключается в create.html/update.html после #body.
    Пример картинки не рендерится живьём (raw): настоящей картинки под рукой
    нет, битая иконка справке не к лицу. Способы загрузки изображений —
-   → ARC-0047. Пример видео (ARC-0052) рендерится живьём: iframe в карточке —
-   самопроверка плагина :::video. #}
+   → ARC-0047. Примеры видео (ARC-0052) и блоков раунда С (:::img, :::gallery,
+   :::carousel) рендерятся живьём на внешних URL — самопроверка плагинов. #}
 <div class="mb-2">
     <button class="btn btn-sm btn-outline-secondary" type="button"
             data-bs-toggle="collapse" data-bs-target="#md-cheatsheet"
@@ -24,8 +24,14 @@
                     {'src': '[текст ссылки](https://example.com)', 'note': '', 'raw': false},
                     {'src': '![описание картинки](uploads/картинка.jpg)',
                      'note': 'картинку загружай кнопкой в тулбаре, перетаскиванием в редактор или Ctrl+V из буфера — путь подставится сам', 'raw': true},
-                    {'src': ':::video[https://www.youtube.com/watch?v=dQw4w9WgXcQ]',
+                    {'src': ':::video[https://vkvideo.ru/video-28812744_456241185]',
                      'note': 'видео отдельным абзацем; для VK бери ссылку или код из кнопки «Встроить» (в ней есть hash); другой домен станет обычной ссылкой', 'raw': false},
+                    {'src': ':::img[подпись](https://avatars.mds.yandex.net/i?id=04519fc7b0e55020499d31c9b4f5d7e5_l-10245177-images-thumbs&n=13, w-100)',
+                     'note': 'одиночная картинка с классами через запятую: w-25, w-50, w-75, w-100, float-start, float-end, rounded; неизвестный класс — картинка останется обычной; alt можно оставить пустым', 'raw': false},
+                    {'src': ':::gallery\n:::img[первая](https://www.rupixel.ru/files/preview/1280x848/21679592911stvxmddukawvfsue95xetcx4rgkvbwxv9xkipxzdvx4tr7ibeg9hyggu8gzbrsifz9ebkp27qbyjnasd39ab8z3lxyqnrbsk9eca.jpg?type=free)\n:::img[вторая](https://www.rupixel.ru/files/preview/1280x848/21679593034ca0nd9a5d9ifph9pqpu8ikx2higdtzwlggwfoibgekwrohxi7c3z473l6kgjjuiro2qss8q8s5ivx8skccuj5rz9vjuyxvm8eza7.jpg?type=free)\n:::end',
+                     'note': 'галерея из миниатюр: каждая строка — :::img, закрывается :::end; строка с опечаткой превращает весь блок в текст', 'raw': false},
+                    {'src': ':::carousel\n:::img[один](https://www.rupixel.ru/files/preview/1280x848/21679592911stvxmddukawvfsue95xetcx4rgkvbwxv9xkipxzdvx4tr7ibeg9hyggu8gzbrsifz9ebkp27qbyjnasd39ab8z3lxyqnrbsk9eca.jpg?type=free)\n:::img[два](https://www.rupixel.ru/files/preview/1280x848/21679593034ca0nd9a5d9ifph9pqpu8ikx2higdtzwlggwfoibgekwrohxi7c3z473l6kgjjuiro2qss8q8s5ivx8skccuj5rz9vjuyxvm8eza7.jpg?type=free)\n:::end',
+                     'note': 'карусель: те же строки, слайды сменяются автоматически; текст в скобках — подпись слайда', 'raw': false},
                 ] %}
                     <div class="col">
                         <div class="md-cheatsheet-item">

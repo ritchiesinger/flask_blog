@@ -30,9 +30,10 @@
 │   │   ├── 📄 base_errors.py             — ServiceError (500) → NotFound/Forbidden/BadRequest/Conflict (404/403/400/409)
 │   │   ├── 📄 comment_service.py         — list_for_post/get/create/update/delete → Pagination (→ ARC-0040)
 │   │   ├── 📄 markdown.py                — два уровня рендера: render_markdown (посты) / render_markdown_basic
-│   │   │                                   (комментарии), реестр _PLUGINS + _build_renderer; block-плагин :::video
-│   │   │                                   (YouTube/VK/RuTube); mistune → nh3 —
-│   │   │                                   порядок обязателен (→ ARC-0015, ARC-0050, ARC-0052, ARC-0056)
+│   │   │                                   (комментарии), реестр _PLUGINS + _build_renderer; :::video
+│   │   │                                   (YouTube/VK/RuTube → ARC-0052, ARC-0056); блоки :::img / :::gallery /
+│   │   │                                   :::carousel (→ ARC-0057); mistune → nh3 — порядок обязателен
+│   │   │                                   (→ ARC-0015, ARC-0050)
 │   │   ├── 📄 permissions.py             — ensure_allowed: единая модель прав контента (→ ARC-0038)
 │   │   ├── 📄 post_service.py            — CRUD постов + sync_all_post_links (→ ARC-0044, ARC-0054)
 │   │   ├── 📄 uploads_service.py         — save_image: whitelist расширений + magic bytes, имя uuid4 (→ ARC-0044)
@@ -40,8 +41,9 @@
 │   ├── 📁 static
 │   │   ├── 📄 autoclose_alerts.js        — тосты .auto-close: показ 5 с, уход по transition (→ ARC-0029)
 │   │   ├── 📄 avatar_crop.js             — кроп-виджет аватара, только profile.html (→ ARC-0051)
-│   │   ├── 📄 blog.css                   — тизер ленты, тост-стек, шпаргалка, аватары, .video-embed 16:9
-│   │   │                                   для :::video (→ ARC-0016, ARC-0045, ARC-0052)
+│   │   ├── 📄 blog.css                   — тизер ленты, тост-стек, шпаргалка, аватары, .video-embed 16:9 для
+│   │   │                                   :::video, .gallery-grid — grid-сетка :::gallery (→ ARC-0016, ARC-0045,
+│   │   │                                   ARC-0052, ARC-0057)
 │   │   ├── 📄 confirm_action.js          — #confirm-modal, CONFIRM_ACTIONS, form через closest (→ ARC-0020, ARC-0041)
 │   │   ├── 📄 emoji_list.js              — набор эмодзи пикера (→ ARC-0033)
 │   │   ├── 📄 emoji_picker.js            — fillEmojiPanel: наполнение панели; вызывается тулбаром EasyMDE
@@ -58,7 +60,8 @@
 │   │   │   ├── 📄 login.html             — вход (next-защита → ARC-0035)
 │   │   │   └── 📄 register.html          — регистрация
 │   │   ├── 📁 blog
-│   │   │   ├── 📄 _cheatsheet.html       — шпаргалка Markdown, живой рендер; 8 примеров, восьмая — видео (→ ARC-0042, ARC-0052)
+│   │   │   ├── 📄 _cheatsheet.html       — шпаргалка Markdown, живой рендер; 8 примеров, восьмая — видео;
+│   │   │   │                               примеры — источники из РФ (RUPixel, VK → ARC-0057) (→ ARC-0042, ARC-0052)
 │   │   │   ├── 📄 comment_update.html    — форма правки комментария: EasyMDE (→ ARC-0022, ARC-0050)
 │   │   │   ├── 📄 create.html            — форма поста: EasyMDE + шпаргалка (→ ARC-0015)
 │   │   │   ├── 📄 index.html             — лента: тизер, карточки, навигация (→ ARC-0016)

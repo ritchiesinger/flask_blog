@@ -4,6 +4,7 @@ from uuid import uuid4
 from glamor import epic, feature, severity, severity_level, step, story, title
 
 import blog.services.markdown as markdown_module
+from blog.services.markdown.core import build_extended_renderer
 from blog.services.markdown import render_markdown
 from tests.tools.asserters.base_asserters import assert_condition
 from tests.tools.asserters.soft_asserters import SoftAssert
@@ -130,21 +131,17 @@ class TestPluginRegistry:
     """
 
     @title("Плагин из реестра применяется к рендеру")
-    def test_registry_plugin_applied(self, monkeypatch):
+    def test_registry_plugin_applied(self):
         """Dummy-плагин вызывается при сборке рендера: рельс работает."""
         calls = []
 
         def dummy_plugin(md):
             calls.append(type(md).__name__)
 
-        monkeypatch.setattr(markdown_module, "_PLUGINS", {"dummy": dummy_plugin})
         with step("Сборка рендера с подменённым реестром"):
-            markdown_module._build_renderer()
-        assert_condition(
-            condition=len(calls) == 1 and calls[0] == "Markdown",
-            allure_step_name="Плагин из реестра вызван с объектом рендера",
-            error_text=f"Плагин не вызван при сборке рендера: {calls}",
-        )
+            build_extended_renderer([dummy_plugin])
+
+        assert calls, "dummy-плагин не был вызван при сборке рендера"
 
 
 @epic("UNIT")

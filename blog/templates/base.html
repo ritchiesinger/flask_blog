@@ -13,14 +13,14 @@
 <body class="bg-light d-flex flex-column min-vh-100">
     <div class="container">
         <header class="d-flex flex-wrap pt-3 pb-2 mb-3 border-bottom">
-            <div class="d-flex flex-wrap col-md-9">
+            <div class="d-flex flex-wrap col-9 col-sm-8 col-md-8 col-lg-8 col-xl-9" id="logo">
                 <a href="{{ url_for('blog.index') }}" class="d-flex link-body-emphasis text-decoration-none">
                     <svg fill="#000000" class="bi me-2" width="40" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
                         <path d="M0 22.016q0 0.832 0.576 1.408t1.44 0.576h5.984v6.016q0 0.832 0.576 1.408t1.44 0.576h20q0.8 0 1.408-0.576t0.576-1.408v-20q0-0.832-0.576-1.408t-1.408-0.608h-6.016v-5.984q0-0.832-0.576-1.408t-1.408-0.608h-20q-0.832 0-1.44 0.608t-0.576 1.408v20zM4 20v-16h16v4h-9.984q-0.832 0-1.44 0.608t-0.576 1.408v9.984h-4zM12 28v-4h10.016q0.8 0 1.408-0.576t0.576-1.408v-10.016h4v16h-16z"></path>
                     </svg>
                     <span class="fs-4">Кружечкин Дмитрий</span>
                 </a>
-                <ul class="navbar-nav justify-content-start ms-4">
+                <ul class="navbar-nav justify-content-start ms-4 d-none d-lg-flex">
                     {% if current_user.is_authenticated and current_user.is_admin %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin.users') }}">Административная панель</a>
@@ -28,16 +28,29 @@
                     {% endif %}
                 </ul>
             </div>
-            <div class="col-md-3 d-flex justify-content-end align-items-center">
+            <div class="col-3 col-sm-4 col-md-4 col-xl-3 d-flex justify-content-end align-items-center">
                 {% if current_user.is_authenticated %}
-                <a class="d-inline-flex align-items-center navbar-text me-2 text-decoration-none" href="{{ url_for('user.profile', username=current_user.username) }}" aria-label="Профиль пользователя {{ current_user.shown_name }}">
+                <a class="d-inline-flex align-items-center text-decoration-none" href="{{ url_for('user.profile', username=current_user.username) }}" aria-label="Профиль пользователя {{ current_user.shown_name }}">
                     {{ avatar(current_user) }}
-                    <span>{{ current_user.shown_name }}</span>
                 </a>
-                <a class="btn btn-primary" href="{{ url_for('auth.logout') }}" data-action="logout">Выйти</a>
+                <a class="d-inline-flex align-items-center me-2 navbar-text text-decoration-none" href="{{ url_for('user.profile', username=current_user.username) }}" aria-label="Профиль пользователя {{ current_user.shown_name }}">
+                    <span class="d-none d-lg-flex">{{ current_user.shown_name }}</span>
+                </a>
+                {% endif %}
+                <div class="dropdown d-flex d-lg-none">
+                    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-list"></i></button>
+                    <ul class="dropdown-menu">
+                        {% if not current_user.is_authenticated %}<li><a class="dropdown-item" href="{{ url_for('auth.register') }}">Регистрация</a></li>{% endif %}
+                        {% if not current_user.is_authenticated %}<li><a class="dropdown-item" href="{{ url_for('auth.login') }}">Войти</a></li>{% endif %}
+                        {% if current_user.is_authenticated and current_user.is_admin %}<li><a class="dropdown-item" href="{{ url_for('admin.users') }}">Административная панель</a></li>{% endif %}
+                        {% if current_user.is_authenticated %}<li><a class="dropdown-item" href="{{ url_for('auth.logout') }}" data-action="logout">Выйти</a></li>{% endif %}
+                    </ul>
+                </div>
+                {% if current_user.is_authenticated %}
+                <a class="btn btn-primary d-lg-flex d-none" href="{{ url_for('auth.logout') }}" data-action="logout">Выйти</a>
                 {% else %}
-                <a class="btn btn-outline-primary" href="{{ url_for('auth.register') }}">Регистрация</a>
-                <a class="btn btn-primary ms-1" href="{{ url_for('auth.login') }}">Войти</a>
+                <a class="btn btn-outline-primary d-none d-lg-flex" href="{{ url_for('auth.register') }}">Регистрация</a>
+                <a class="btn btn-primary ms-1 d-none d-lg-flex" href="{{ url_for('auth.login') }}">Войти</a>
                 {% endif %}
             </div>
         </header>
@@ -76,12 +89,19 @@
         </div>
     </div>
     <footer class="container d-flex flex-wrap justify-content-between align-items-center mt-auto py-3 border-top">
-        <div class="d-flex small text-muted col-md-4">© 2026 Кружечкин Дмитрий</div>
-        <div class="d-flex justify-content-end col-md-8 align-items-center">
-            <span class="small text-muted">Ресурс создан с использованием технологий:</span>
+        <div class="d-flex small text-muted col-12 justify-content-center col-md-4 justify-content-md-start">
+            <span class="text-center">© 2026 Кружечкин Дмитрий</span>
+        </div>
+        <div class="d-flex small text-muted col-12 justify-content-center col-md-6 justify-content-md-end col-xxl-7">
+            <span class="text-muted">Ресурс создан с использованием технологий:</span>
+        </div>
+        <div class="d-flex justify-content-end col-12 justify-content-center mt-2 col-md-2 justify-content-md-end justify-content-lg-center col-xxl-1 mt-md-0">
             <span class="ms-1" data-bs-toggle="tooltip" data-bs-title="Flask">
                 <a href="https://flask.palletsprojects.com/en/stable/" target="_blank" rel="noopener noreferrer" aria-label="Flask">
-                    <svg role="img" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><title>Flask</title><path d="M10.773 2.878c-.013 1.434.322 4.624.445 5.734l-8.558 3.83c-.56-.959-.98-2.304-1.237-3.38l-.06.027c-.205.09-.406.053-.494-.088l-.011-.018-.82-1.506c-.058-.105-.05-.252.024-.392a.78.78 0 0 1 .358-.331l9.824-4.207c.146-.064.299-.063.4.004.106.062.127.128.13.327Zm.68 7c.523 1.97.675 2.412.832 2.818l-7.263 3.7a19.35 19.35 0 0 1-1.81-2.83l8.24-3.689Zm12.432 8.786h.003c.283.402-.047.657-.153.698l-.947.37c.037.125.035.319-.217.414l-.736.287c-.229.09-.398-.059-.42-.2l-.025-.125c-4.427 1.784-7.94 1.685-10.696.647-1.981-.745-3.576-1.983-4.846-3.379l6.948-3.54c.721 1.431 1.586 2.454 2.509 3.178 2.086 1.638 4.415 1.712 5.793 1.563l-.047-.233c-.015-.077.007-.135.086-.165l.734-.288a.302.302 0 0 1 .342.086l.748-.288a.306.306 0 0 1 .341.086l.583.89Z"/></svg>
+                    <svg role="img" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <title>Flask</title>
+                        <path d="M10.773 2.878c-.013 1.434.322 4.624.445 5.734l-8.558 3.83c-.56-.959-.98-2.304-1.237-3.38l-.06.027c-.205.09-.406.053-.494-.088l-.011-.018-.82-1.506c-.058-.105-.05-.252.024-.392a.78.78 0 0 1 .358-.331l9.824-4.207c.146-.064.299-.063.4.004.106.062.127.128.13.327Zm.68 7c.523 1.97.675 2.412.832 2.818l-7.263 3.7a19.35 19.35 0 0 1-1.81-2.83l8.24-3.689Zm12.432 8.786h.003c.283.402-.047.657-.153.698l-.947.37c.037.125.035.319-.217.414l-.736.287c-.229.09-.398-.059-.42-.2l-.025-.125c-4.427 1.784-7.94 1.685-10.696.647-1.981-.745-3.576-1.983-4.846-3.379l6.948-3.54c.721 1.431 1.586 2.454 2.509 3.178 2.086 1.638 4.415 1.712 5.793 1.563l-.047-.233c-.015-.077.007-.135.086-.165l.734-.288a.302.302 0 0 1 .342.086l.748-.288a.306.306 0 0 1 .341.086l.583.89Z"/>
+                    </svg>
                 </a>
             </span>
             <span class="ms-1" data-bs-toggle="tooltip" data-bs-title="Bootstrap 5.3">

@@ -247,3 +247,62 @@ body {
     height: 100%;
     border: 0;
 }
+/* Галерея: настоящая сетка */
+.gallery-grid {
+  display: grid;
+  /* Магия сетки: авто-заполнение, минимум 200px, остальное делится поровну */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Ссылки-обёртки — просто контейнеры, не влияют на раскладку */
+.gallery-grid a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Картинки — занимают всю ячейку, сохраняют пропорции */
+.gallery-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;      /* Обрезает лишнее, но заполняет ячейку без искажений */
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Стили для карусели (обертка) */
+.carousel-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* Подпись внутри карусели */
+.carousel-caption {
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+}
+
+/* Видео (если твой парсер оборачивает iframe в div с классом video-embed) */
+.video-embed {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 */
+  height: 0;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  background-color: #000;
+}
+
+.video-embed iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}

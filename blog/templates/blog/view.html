@@ -1,23 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Пост "{{ post.title }}"{% endblock %}
 {% block header %}
-<h3>{{ post.title }}
-    {% if current_user.is_authenticated and current_user.id == post.author.id %}
-    <div class="dropdown d-inline">
-        <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Действия с постом" aria-expanded="false">
-            <i class="bi bi-list"></i>
-        </button>
-        <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ url_for('blog.update', post_id=post.id) }}">Редактировать</a></li>
-            <li>
-                <form method="post" action="{{ url_for('blog.delete', post_id=post.id) }}" class="d-inline">
-                    <a class="dropdown-item" href="#" data-action="delete_post">Удалить</a>
-                </form>
-            </li>
-        </ul>
-    </div>
-    {% endif %}
-</h3>
+<h3>{{ post.title }}</h3>
 {% endblock %}
 {% block content %}
 <nav aria-label="breadcrumb">
@@ -28,13 +12,42 @@
 </nav>
 <article class="card mb-3">
     <div class="card-body">
-        <div class="small mb-3">
-            <a class="my-1 text-decoration-none"
-               href="{{ url_for('user.profile', username=post.author.username) }}"
-               aria-label="Профиль пользователя {{ post.author.shown_name }}">
-                {{ avatar(post.author) }}
-            </a>
-            <span class="text-muted">Автор: {{ post.author.shown_name }}, Дата: {{ post.created.strftime('%Y-%m-%d %H:%M') }}</span>
+        <div class="small mb-3 row justify-content-between">
+            <div class="col-9 row">
+                <a class="my-1 text-decoration-none col-3 me-1"
+                   href="{{ url_for('user.profile', username=post.author.username) }}"
+                   aria-label="Профиль пользователя {{ post.author.shown_name }}"
+                   style="line-height: 1.7; max-width: 60px;">
+                    {{ avatar(post.author) }}
+                </a>
+
+                <div class="row ps-0 col-9 text-muted">
+                    <span class="fw-bold col-12 ps-0">{{ post.author.shown_name }}</span>
+                    <span class="text-muted col-12 ps-0">{{ post.created.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+
+
+
+
+            </div>
+
+            {% if current_user.is_authenticated and current_user.id == post.author.id %}
+                <div class="col-3 pe-2 text-end">
+            <div class="dropdown d-inline">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Действия с постом" aria-expanded="false">
+                    <i class="bi bi-list"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('blog.update', post_id=post.id) }}">Редактировать</a></li>
+                    <li>
+                        <form method="post" action="{{ url_for('blog.delete', post_id=post.id) }}" class="d-inline">
+                            <a class="dropdown-item" href="#" data-action="delete_post">Удалить</a>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+                </div>
+            {% endif %}
         </div>
         <div class="post-body">{{ post.body | markdown | safe }}</div>
         <hr>

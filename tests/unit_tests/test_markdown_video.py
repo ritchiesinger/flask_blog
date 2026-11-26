@@ -3,7 +3,8 @@ from types import SimpleNamespace
 
 from glamor import epic, feature, severity, severity_level, story, title
 
-from blog.services.markdown import _video_plugin, render_markdown
+from blog.services.markdown import render_markdown
+from blog.services.markdown.video import video_plugin
 from tests.tools.asserters.base_asserters import assert_condition
 from tests.tools.asserters.soft_asserters import SoftAssert
 
@@ -388,7 +389,7 @@ class TestVideoPluginRegistration:
             block=SimpleNamespace(register=lambda *args, **kwargs: registered.append(args[0])),
             renderer=None,
         )
-        _video_plugin(md)
+        video_plugin(md)
         assert_condition(
             condition=registered == ["video"],
             allure_step_name="блок зарегистрирован и без рендера",
