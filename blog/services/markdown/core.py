@@ -1,10 +1,8 @@
 """Ядро рендера: рендеры двух уровней и карты санитизации nh3 (→ ARC-0054)."""
 
-from copy import deepcopy
 from html import escape, unescape
 
 import mistune
-import nh3
 
 from blog.services import uploads_service
 

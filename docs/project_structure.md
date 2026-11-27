@@ -29,11 +29,14 @@
 │   │   ├── 📄 avatar_service.py          — сохранение аватара: квадрат, пережатие AVATAR_SIZE/SMALL, папка при записи (→ ARC-0051)
 │   │   ├── 📄 base_errors.py             — ServiceError (500) → NotFound/Forbidden/BadRequest/Conflict (404/403/400/409)
 │   │   ├── 📄 comment_service.py         — list_for_post/get/create/update/delete → Pagination (→ ARC-0040)
-│   │   ├── 📄 markdown.py                — два уровня рендера: render_markdown (посты) / render_markdown_basic
-│   │   │                                   (комментарии), реестр _PLUGINS + _build_renderer; :::video
-│   │   │                                   (YouTube/VK/RuTube → ARC-0052, ARC-0056); блоки :::img / :::gallery /
-│   │   │                                   :::carousel (→ ARC-0057); mistune → nh3 — порядок обязателен
-│   │   │                                   (→ ARC-0015, ARC-0050)
+│   │   ├── 📁 markdown                   — пакет Markdown-рендера; mistune → nh3 — порядок обязателен
+│   │   │                                   (→ ARC-0015, ARC-0050); распил монолита → ARC-0058
+│   │   │   ├── 📄 __init__.py            — контракты render_markdown / render_markdown_basic, реестр _PLUGINS
+│   │   │   │                               (собирается из модулей пакета), nh3-карты двух уровней (→ ARC-0058)
+│   │   │   ├── 📄 blocks.py              — плагины раунда С: :::img (whitelist классов), :::gallery, :::carousel
+│   │   │   │                               (→ ARC-0057, тесты → ARC-0059); токен broken — общий для обоих контейнеров
+│   │   │   ├── 📄 core.py                — _BootstrapRenderer/_BasicRenderer, build_extended_renderer (→ ARC-0050)
+│   │   │   └── 📄 video.py               — плагин :::video: YouTube/VK/RuTube (→ ARC-0052, ARC-0056)
 │   │   ├── 📄 permissions.py             — ensure_allowed: единая модель прав контента (→ ARC-0038)
 │   │   ├── 📄 post_service.py            — CRUD постов + sync_all_post_links (→ ARC-0044, ARC-0054)
 │   │   ├── 📄 uploads_service.py         — save_image: whitelist расширений + magic bytes, имя uuid4 (→ ARC-0044)
@@ -129,9 +132,11 @@
 │   │   ├── 📄 cli_tools.py               — invoke_cli: запуск click-команды в app_context + аттач команды
 │   │   │                                   и вывода в Allure, маскировка паролей hidden
 │   │   └── 📄 image_factory.py           — генерация тестовых изображений (→ ARC-0044)
-│   ├── 📁 unit_tests                     — юниты без Allure: гварды, ветки вне интерфейсов (→ ARC-0006)
-│   │   └── 📄 test_*.py                  — test_cli_registration, test_markdown_video (плагин :::video: 26 юнитов,
-│   │                                       YouTube/VK/RuTube; → ARC-0043, ARC-0050, ARC-0052, ARC-0056)
+│   ├── 📁 unit_tests                     — юниты с Allure-обвязкой (минимум epic/feature/story → ARC-0059):
+│   │   │                                   гварды, ветки вне интерфейсов (→ ARC-0006); 66 прогонов
+│   │   └── 📄 test_*.py                  — test_cli_registration, test_markdown_video (26 юнитов :::video),
+│   │                                       test_markdown_blocks (40 юнитов блоков раунда С; → ARC-0043, ARC-0052,
+│   │                                       ARC-0056, ARC-0057, ARC-0059)
 │   ├── 📄 __init__.py                    — пакет tests (→ ARC-0054: без него bare pytest ломает импорты)
 │   └── 📄 conftest.py                    — PRAGMA foreign_keys=ON, pytest_plugins = tests.preconditions.* (→ ARC-0054)
 ├── 📄 .gitignore                         — uploads/, кэши, instance

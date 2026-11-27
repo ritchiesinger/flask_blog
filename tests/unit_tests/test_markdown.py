@@ -3,9 +3,8 @@ from uuid import uuid4
 
 from glamor import epic, feature, severity, severity_level, step, story, title
 
-import blog.services.markdown as markdown_module
-from blog.services.markdown.core import build_extended_renderer
 from blog.services.markdown import render_markdown
+from blog.services.markdown.core import build_extended_renderer
 from tests.tools.asserters.base_asserters import assert_condition
 from tests.tools.asserters.soft_asserters import SoftAssert
 

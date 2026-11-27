@@ -1,11 +1,12 @@
 """Плагины раунда С: :::img, :::gallery, :::carousel (→ ARC-0057)."""
 
 import re
+from collections.abc import Callable
 from html import escape
-from blog.services import uploads_service
-from typing import Callable
 
 import mistune
+
+from blog.services import uploads_service
 
 # Все три конструкции — block-плагины по образцу video (эталон footnotes):
 # md.block.register(name, regex, parse, before="paragraph"), parse возвращает m.end().
@@ -60,11 +61,14 @@ def _parse_img(block, m: re.Match[str], state) -> int:
 
 
 def _make_container_parser(kind: str) -> Callable[[object, re.Match[str], object], int]:
-    """Фабрика парсеров контейнеров: gallery и carousel различаются только типом токена.
+    r"""Фабрика парсеров контейнеров: gallery и carousel различаются только типом токена.
 
     Закрытость определяется по хвосту совпадения: regex потребил :::end —
     токен контейнера; дошло до \\Z — открытый контейнер, токен broken со всем
     остатком поста (решение 2: хвост без :::end — весь остаток текстом).
+    Хвост срезается и от хвостовых пробелов/табов: регэксп разрешает их после
+    :::end — закрытый блок с «:::end   » обязан классифицироваться как закрытый
+    (урок прогона п. 29).
 
     Args:
         kind: Имя конструкции (gallery или carousel).
@@ -73,7 +77,7 @@ def _make_container_parser(kind: str) -> Callable[[object, re.Match[str], object
         Функция разбора для md.block.register.
     """
     def parse(block, m: re.Match[str], state) -> int:
-        if m.group(0).rstrip("\n").endswith(":::end"):
+        if m.group(0).rstrip(" \x09\n").endswith(":::end"):
             state.append_token({"type": kind, "raw": m.group(f"body_{kind}")})
         else:
             state.append_token({"type": "broken", "raw": m.group(0)})
@@ -153,7 +157,7 @@ def _render_broken(renderer, text: str) -> str:
 
 
 def _render_img(renderer, text: str) -> str:
-    """Рендерит :::img: img с whitelist-классами или деградация в markdown-картинку.
+    r"""Рендерит :::img: img с whitelist-классами или деградация в markdown-картинку.
 
     Деградация (решение 2): неизвестный класс — строка рендерится стандартной
     markdown-картинкой через renderer.image (переписывание миниатюр для
@@ -180,7 +184,8 @@ def _render_img(renderer, text: str) -> str:
     name = match.group(1)
     return (
         f'<a href="/uploads/{escape(name, quote=True)}" target="_blank">'
-        f'<img src="/uploads/thumbs/{escape(name, quote=True)}" alt="{escape(alt, quote=True)}" class="{class_str}"></a>'
+        f'<img src="/uploads/thumbs/{escape(name, quote=True)}" alt="{escape(alt, quote=True)}" class="{class_str}">'
+        f'</a>'
     )
 
 
@@ -221,25 +226,30 @@ def _render_carousel(renderer, raw: str) -> str:
     """Рендерит :::carousel: Bootstrap-карусель, оригиналы в слайдах (решение 1).
 
     Непустой alt — подпись слайда (решение 5), пустой — слайд без подписи.
-    Классы слайда: d-block w-100 + whitelist-токены пользователя. Стрелки и
-    индикаторы не рендерятся: они потребовали бы расширения nh3-карты
-    (button, data-bs-атрибуты) — вопрос вынесен пользователю. Для слайдов
-    /uploads/<имя> — оригинал (не миниатюра), GIF — оригинал.
+    Классы слайда: d-block w-100 img-fluid всегда + whitelist-токены пользователя;
+    неизвестный токен — деградация всего блока (канон «мусор убивает весь блок»,
+    тот же whitelist, что у :::img). Стрелки и индикаторы не рендерятся: они
+    потребовали бы расширения nh3-карты (button, data-bs-атрибуты) — вопрос
+    вынесен пользователю. Для слайдов /uploads/<имя> — оригинал (не миниатюра),
+    GIF — оригинал.
 
     Args:
         renderer: Активный рендер mistune (не используется).
         raw: Тело контейнера из токена.
 
     Returns:
-        HTML карусели или экранированный блок при мусорной строке.
+        HTML карусели или экранированный блок при мусорной строке/классе.
     """
     parsed = _parse_lines(raw)
     if parsed is None:
         return _broken_html(f":::carousel\n{raw}")
     items: list[str] = []
     for index, (alt, path, classes) in enumerate(parsed):
+        validated = _validate_classes(classes)
+        if validated is None:
+            return _broken_html(f":::carousel\n{raw}")
         active = " active" if index == 0 else ""
-        tokens = "d-block w-100 img-fluid" + (" " + " ".join(classes) if classes else "")
+        tokens = "d-block w-100 img-fluid" + (" " + " ".join(validated) if validated else "")
         match = uploads_service.UPLOAD_RE.fullmatch(path)
         if match is not None and not path.endswith(".gif"):
             src = f"/uploads/{match.group(1)}"
@@ -294,4 +304,3 @@ def carousel_plugin(md: mistune.Markdown) -> None:
     md.block.register("carousel", _CAROUSEL_PATTERN, _make_container_parser("carousel"), before="paragraph")
     if md.renderer and md.renderer.NAME == "html":
         md.renderer.register("carousel", _render_carousel)
-
