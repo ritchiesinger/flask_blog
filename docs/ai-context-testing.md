@@ -34,8 +34,10 @@
   текст сущности может легитимно присутствовать в ссылках чужих карточек (→ ARC-0039). Проверка набора
   сущностей — сравнением множеств, не генератором с двумя for (двойной for в all(...) — декартово
   произведение; → ARC-0040). Докстринги Google; фикстуры setup_*.
-- Пагинации покрыты трио (split/sanitization/beyond) — канон «каждая пагинация накрыта трио»; WEB-пагинация
-  админки — хвост (см. бэклог разработки).
+- Авторизация в тесте: одна авторизованная фикстура на тест; смена личности в сценарии — явными шагами
+  (выход/вход/гость на чистом клиенте), второй авторизованной фикстуры не запрашивать (→ ARC-0061).
+- Пагинации покрыты трио (split/sanitization/beyond) — канон «каждая пагинация накрыта трио» (WEB-пагинация
+  админки — закрыта → ARC-0061).
 - Каноны приложения с тестовым следом — считать контрактом тестов: якоря data-action (след канона шаблонов),
   структурный якорь id="md-cheatsheet" (след → ARC-0039). Изменение таких следов в функциональной фазе —
   синхронная правка затронутых тестов.
@@ -53,20 +55,24 @@
   контексте (→ ARC-0009); ORM в теле теста — только внутри with setup_app.app_context().
 - setup_app_client: app.test_client_class = AllureClient; возврат на return.
 - create_user(app, app_client, username, password, role=Roles.USER): commit → refresh → attach/to_dict → expunge,
-  возврат объекта без перезапроса (→ ARC-0034). В тестах супер-админ — create_user(role=Roles.SUPERADMIN).
-- UserObject: db_model, password, api_token (ленивое свойство — единственное место с ассертами вне теста),
+  возврат объекта без перезапроса (→ ARC-0034). В тестах супер-админ — create_user(role=Roles.SUPERADMIN);
+  переиспользуется как хелпер для ORM-посева в телах тестов.
+- UserObject: db_model, password, client (публичный клиент — ORM-посев и прямые запросы из теста; приватный
+  _flask_client не читать, → ARC-0061), api_token (ленивое свойство — единственное место с ассертами вне теста),
   refresh_api_token(). user.api = ApiUserFacade, user.web = WebClient. Гостевые действия — чистые Api/WebClient;
   клиенты возвращают сырой ответ, без ассертов.
 - Api — фасад с разделами (api.users.list/delete/change_role(token=...)); ApiUserFacade — методы от имени
   пользователя (change_user_role, ...), раздела .users у него НЕТ (→ ARC-0041). WebClient —
   .auth/.posts/.comments/.admin/.uploads/.users (.users.profile, .users.change_role, .users.change_display_name,
-  .users.upload_avatar(+no_file), .users.reset_avatar; → ARC-0053).
+  .users.upload_avatar(+no_file), .users.reset_avatar; → ARC-0053); методы фасада принимают *args/**kwargs
+  прозрачно (admin.users(query_string=...); → ARC-0061).
 - Фасад пользователя открывает все действия своей роли, включая пассивные чтения без токена (get_posts_list,
   get_comments_list); тонкая ретрансляция — контракт, не дублирование (→ ARC-0035).
 - Канон фикстур: ORM-объекты — commit → refresh → attach/to_dict → expunge; после expunge — только скаляры
   колонок, связи нельзя; сериализация до expunge (→ ARC-0034).
-- WEB-логин-предусловие — фикстура setup_logged_in_user(setup_test_user): титул «Пользователь. WEB. Авторизован»,
-  шаг входа с самопроверкой assert_redirect, возврат UserObject; логин-как-предмет теста — явным шагом (→ ARC-0035).
+- WEB-логин-предусловия — фикстуры setup_logged_in_user(setup_test_user) и setup_logged_in_admin(setup_admin_user):
+  титулы «Пользователь. WEB. Авторизован» / «Администратор. WEB. Авторизован», шаг входа с самопроверкой
+  assert_redirect, возврат UserObject; логин-как-предмет теста — явным шагом (→ ARC-0035, ARC-0061).
 - Временная папка — setup_tmp_dir (TemporaryDirectory), не tmp_path/tmp_path_factory (в отчёте нет внутренних
   фикстур pytest). Актёр и слой однослойной фикстуры — в @title, вложенные шаги без префиксов; многослойная
   фикстура описывает результат в титуле, шаги — по общему канону (→ ARC-0034).

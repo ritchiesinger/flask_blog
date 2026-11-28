@@ -76,7 +76,8 @@
 │   │   │   ├── 📄 404.html               — фирменная 404 (ловит и роутинг, и NotFoundError)
 │   │   │   └── 📄 500.html               — фирменная 500
 │   │   ├── 📄 base.html                  — каркас: хедер, тосты, модалка, импорт макросов
-│   │   └── 📄 macros.html                — avatar(user, size), pagination_nav(pagination, endpoint) (→ ARC-0046, ARC-0051)
+│   │   └── 📄 macros.html                — avatar(user, size), pagination_nav(pagination, endpoint):
+│   │                                       disabled-стрелки с tabindex/aria-disabled (→ ARC-0046, ARC-0051, ARC-0061)
 │   ├── 📁 web                            — тонкие HTML-роуты; @web_errors; гость → 302, не-админ → 404
 │   │   ├── 📄 __init__.py                — blueprint web
 │   │   ├── 📄 admin.py                   — GET /admin/users, POST /admin/users/<id>/delete (→ ARC-0021)
@@ -112,14 +113,16 @@
 │   │   ├── 📄 endpoints.py               — API-эндпоинты: dataclass-константы, .format(...) (→ ARC-0005)
 │   │   └── 📄 web_endpoints.py           — WEB-эндпоинты: WebEndpoints.USER.* (→ ARC-0053)
 │   ├── 📁 objects
-│   │   └── 📄 user.py                    — UserObject: db_model, password, api_token, .api/.web фасады (→ ARC-0005)
+│   │   └── 📄 user.py                    — UserObject: db_model, password, client (публичный → ARC-0061),
+│   │                                       api_token, .api/.web фасады (→ ARC-0005)
 │   ├── 📁 preconditions                  — фикстуры-предусловия, плагины conftest (→ ARC-0034)
 │   │   ├── 📄 __init__.py
 │   │   ├── 📄 app_preconditions.py       — setup_app, setup_app_client, setup_tmp_dir
 │   │   ├── 📄 comments_preconditions.py  — создание комментариев
 │   │   ├── 📄 posts_preconditions.py     — создание постов
-│   │   └── 📄 users_preconditions.py     — create_user, setup_logged_in_user (→ ARC-0035)
-│   ├── 📁 tests                          — интерфейсные тесты (API/WEB/CLI), Allure-обвязка; 293 прогона
+│   │   └── 📄 users_preconditions.py     — create_user, setup_logged_in_user (→ ARC-0035),
+│   │                                       setup_logged_in_admin (→ ARC-0061)
+│   ├── 📁 tests                          — интерфейсные тесты (API/WEB/CLI), Allure-обвязка; 362 прогона
 │   │   └── 📄 test_*.py                  — по доменам: api_*, web_*, cli_*, *_service/model
 │   ├── 📁 tools
 │   │   ├── 📁 asserters

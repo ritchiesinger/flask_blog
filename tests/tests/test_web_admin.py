@@ -1,16 +1,17 @@
-"""WEB-админка: доступ к роутам по ролям и удаление пользователей.
+"""Тесты WEB-роутов админки: ролевой доступ, удаление пользователей, пагинация списка.
 
 Ролевая модель WEB (решение 2026-11-13): гость — редирект на логин; не-админ — 404 (страница «не существует»);
-админ — 200. Удаление самого себя — 403 от сервиса, как в API.
+админ — 200. Удаление самого себя — 403 от сервиса, как в API. Пагинация списка — трио по эталону
+TestIndexPagination (→ ARC-0061).
 """
 
-from flask import Flask
 from flask.testing import FlaskClient
-from glamor import epic, feature, step, story, title
+from glamor import epic, feature, severity, severity_level, step, story, title
 
 from blog.models.user import User
 from tests.constants.web_endpoints import WebEndpoints
 from tests.objects.user import UserObject
+from tests.preconditions.users_preconditions import create_user
 from tests.tools.asserters.base_asserters import assert_condition, assert_redirect, assert_status_code
 from tests.tools.clients.web_client import WebClient
 
@@ -63,11 +64,9 @@ class TestAdminUsers:
     """Администратор видит список и удаляет пользователей."""
 
     @title("Администратор видит список пользователей")
-    def test_admin_sees_users(self, setup_admin_user: UserObject, setup_test_user: UserObject):
+    def test_admin_sees_users(self, setup_logged_in_admin: UserObject, setup_test_user: UserObject):
         """Под админом список открывается: 200, созданный пользователь и кнопки на месте."""
-        admin, user = setup_admin_user, setup_test_user
-        with step("Администратор. WEB. Авторизация"):
-            admin.web.auth.login(username=admin.db_model.username, password=admin.password)
+        admin, user = setup_logged_in_admin, setup_test_user
         with step("Администратор. WEB. Открытие списка пользователей"):
             response = admin.web.admin.users()
             assert_status_code(expect=200, response=response)
@@ -86,14 +85,11 @@ class TestAdminUsers:
     @title("Администратор удаляет обычного пользователя")
     def test_admin_deletes_regular_user(
             self,
-            setup_app: Flask,
-            setup_admin_user: UserObject,
+            setup_logged_in_admin: UserObject,
             setup_test_user: UserObject,
     ):
         """Удаление: 302 на список, флеш, пользователь исчезает из БД."""
-        admin, user = setup_admin_user, setup_test_user
-        with step("Администратор. WEB. Авторизация"):
-            admin.web.auth.login(username=admin.db_model.username, password=admin.password)
+        admin, user = setup_logged_in_admin, setup_test_user
         with step("Администратор. WEB. Список до удаления (положительный контроль)"):
             response = admin.web.admin.users()
             assert_condition(
@@ -103,7 +99,7 @@ class TestAdminUsers:
             )
         with step("Администратор. WEB. Удаление пользователя"):
             response = admin.web.admin.delete_user(user_id=user.db_model.id)
-            assert_redirect(expect=WebEndpoints.ADMIN.USERS, response=response)
+            assert_status_code(expect=302, response=response)
         with step("Администратор. WEB. Флеш об успехе"):
             response = admin.web.admin.users()
             assert_status_code(expect=200, response=response)
@@ -113,7 +109,7 @@ class TestAdminUsers:
                 error_text="Флеш-сообщение не найдено",
             )
         with step("ORM. Проверка исчезновения пользователя"):
-            with setup_app.app_context():
+            with admin.client.application.app_context():
                 gone = User.query.filter_by(username=user.db_model.username).one_or_none()
                 assert_condition(
                     condition=gone is None,
@@ -122,21 +118,17 @@ class TestAdminUsers:
                 )
 
     @title("Администратор не может удалить сам себя (403)")
-    def test_admin_cannot_delete_self(self, setup_admin_user: UserObject):
+    def test_admin_cannot_delete_self(self, setup_logged_in_admin: UserObject):
         """Админ не может удалить сам себя: ForbiddenError от сервиса — 403, как в API."""
-        admin = setup_admin_user
-        with step("Администратор. WEB. Авторизация"):
-            admin.web.auth.login(username=admin.db_model.username, password=admin.password)
+        admin = setup_logged_in_admin
         with step("Администратор. WEB. Попытка удаления самого себя"):
             response = admin.web.admin.delete_user(user_id=admin.db_model.id)
             assert_status_code(expect=403, response=response)
 
     @title("Удаление несуществующего пользователя: 404")
-    def test_delete_unknown_user(self, setup_admin_user: UserObject):
+    def test_delete_unknown_user(self, setup_logged_in_admin: UserObject):
         """Несуществующий id — NotFoundError: 404."""
-        admin = setup_admin_user
-        with step("Администратор. WEB. Авторизация"):
-            admin.web.auth.login(username=admin.db_model.username, password=admin.password)
+        admin = setup_logged_in_admin
         with step("Администратор. WEB. Удаление несуществующего пользователя"):
             response = admin.web.admin.delete_user(user_id=99999)
             assert_status_code(expect=404, response=response)
@@ -151,14 +143,15 @@ class TestAdminMenu:
     @title("Пункт меню виден только администратору")
     def test_menu_item_visibility(
             self,
-            setup_app_client: FlaskClient,
-            setup_admin_user: UserObject,
+            setup_logged_in_admin: UserObject,
             setup_test_user: UserObject,
+            setup_app_client: FlaskClient,
     ):
-        """Пункт присутствует у админа, отсутствует у обычного пользователя и гостя."""
-        admin, user = setup_admin_user, setup_test_user
-        with step("Администратор. WEB. Авторизация"):
-            admin.web.auth.login(username=admin.db_model.username, password=admin.password)
+        """Пункт присутствует у админа, отсутствует у обычного пользователя и гостя.
+
+        Одна авторизованная фикстура на тест (→ ARC-0061): смена личности — явными шагами.
+        """
+        admin, user = setup_logged_in_admin, setup_test_user
         with step("Администратор. WEB. Главная страница"):
             response = admin.web.posts.index()
             assert_condition(
@@ -169,7 +162,7 @@ class TestAdminMenu:
         with step("Администратор. WEB. Выход из системы"):
             response = admin.web.auth.logout()
             assert_redirect(expect="/", response=response)
-        with step("Пользователь. WEB. Авторизация"):
+        with step("Пользователь. WEB. Вход в систему"):
             user.web.auth.login(username=user.db_model.username, password=user.password)
         with step("Пользователь. WEB. Главная страница"):
             response = user.web.posts.index()
@@ -209,4 +202,114 @@ class TestNotFoundPage:
                 condition=PAGE_NOT_FOUND in body,
                 allure_step_name="Осмысленный текст",
                 error_text="Текст 404-страницы не найден"
+            )
+
+
+@epic("WEB")
+@feature("Административная панель")
+@story("Пагинация списка пользователей")
+class TestAdminUsersPagination:
+    """Пагинация WEB-админки: разбиение по страницам, санитизация номера страницы.
+
+    Эталон — TestIndexPagination (→ ARC-0061). Отличие от эталона: admin_service.list_users
+    пагинирует по id возрастанию (→ ARC-0032), поэтому на первой странице — admin и user01..user19,
+    на второй — user20. Страницы запрашиваются фасадом admin.web.admin.users(query_string=...) —
+    cookie админ-сессии едины на клиенте фикстуры; ORM-посев идёт через публичный admin.client
+    (→ ARC-0061).
+    """
+
+    @title("21 пользователь делится на страницу из 20 и страницу из 1")
+    @severity(severity_level.CRITICAL)
+    def test_admin_users_pagination_splits_list(self, setup_logged_in_admin: UserObject):
+        """Список делится по USERS_PER_PAGE: admin и user01..user19 на первой, user20 на второй.
+
+        Ожидание: на стр. 1 — user01 и user19 (user20 нет), на стр. 2 — user20 (user01 нет).
+        """
+        admin = setup_logged_in_admin
+        with step("ORM. Создание 20 пользователей user01..user20"):
+            for number in range(1, 21):
+                create_user(
+                    app=admin.client.application,
+                    app_client=admin.client,
+                    username=f"user{number:02d}",
+                    password="password123",
+                )
+        with step("Администратор. WEB. Открытие первой страницы"):
+            first = admin.web.admin.users(query_string={"page": 1})
+            assert_status_code(expect=200, response=first)
+        with step("Проверка: на первой странице admin и первые 19, user20 нет"):
+            page_text = first.get_data(as_text=True)
+            assert_condition(
+                condition="user01" in page_text and "user19" in page_text,
+                allure_step_name="На первой странице начало списка",
+                error_text="Первые пользователи не найдены на первой странице!",
+            )
+            assert_condition(
+                condition="user20" not in page_text,
+                allure_step_name="Последний пользователь на второй странице",
+                error_text="user20 попал на первую страницу!",
+            )
+        with step("Администратор. WEB. Открытие второй страницы"):
+            second = admin.web.admin.users(query_string={"page": 2})
+            assert_status_code(expect=200, response=second)
+            page_text = second.get_data(as_text=True)
+            assert_condition(
+                condition="user20" in page_text,
+                allure_step_name="На второй странице последний пользователь",
+                error_text="user20 не найден на второй странице!",
+            )
+            assert_condition(
+                condition="user01" not in page_text,
+                allure_step_name="Начало списка не дублируется на второй странице",
+                error_text="user01 продублировался на второй странице!",
+            )
+
+    @title("Мусор и некорректный page дают первую страницу без ошибок")
+    @severity(severity_level.MINOR)
+    def test_admin_users_page_sanitization(self, setup_logged_in_admin: UserObject):
+        """?page=0, -5, abc → 200 и первая страница (fallback без исключений)."""
+        admin = setup_logged_in_admin
+        with step("ORM. Создание пользователя user01 для контроля"):
+            create_user(
+                app=admin.client.application,
+                app_client=admin.client,
+                username="user01", password="password123",
+            )
+        with step("Администратор. WEB. ?page=0 и ?page=-5"):
+            for bad_page in (0, -5):
+                response = admin.web.admin.users(query_string={"page": bad_page})
+                assert_status_code(expect=200, response=response)
+                assert_condition(
+                    condition="user01" in response.get_data(as_text=True),
+                    allure_step_name=f"page={bad_page} даёт первую страницу",
+                    error_text=f"page={bad_page} сломал список пользователей!",
+                )
+        with step("Администратор. WEB. ?page=abc"):
+            response = admin.web.admin.users(query_string={"page": "abc"})
+            assert_status_code(expect=200, response=response)
+            assert_condition(
+                condition="user01" in response.get_data(as_text=True),
+                allure_step_name="page=abc даёт первую страницу",
+                error_text="page=abc сломал список пользователей!",
+            )
+
+    @title("Страница за пределами total отдаёт 200 и пустой список")
+    @severity(severity_level.MINOR)
+    def test_admin_users_page_beyond_total(self, setup_logged_in_admin: UserObject):
+        """?page=999 → 200, пустой список (error_out=False)."""
+        admin = setup_logged_in_admin
+        with step("ORM. Создание пользователя user01 для контроля"):
+            create_user(
+                app=admin.client.application,
+                app_client=admin.client,
+                username="user01",
+                password="password123"
+            )
+        with step("Администратор. WEB. Открытие страницы 999"):
+            response = admin.web.admin.users(query_string={"page": 999})
+            assert_status_code(expect=200, response=response)
+            assert_condition(
+                condition="user01" not in response.get_data(as_text=True),
+                allure_step_name="Список за пределами total пуст",
+                error_text="За пределами total список не пуст!",
             )

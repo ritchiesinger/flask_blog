@@ -30,9 +30,9 @@ class _Admin:
     def __init__(self, client: WebClient):
         self._client = client
 
-    def users(self):
+    def users(self, *args, **kwargs):
         """GET списка пользователей."""
-        return self._client.app_client.get(WebEndpoints.ADMIN.USERS)
+        return self._client.app_client.get(WebEndpoints.ADMIN.USERS, *args, **kwargs)
 
     def delete_user(self, user_id):
         """POST удаления пользователя."""

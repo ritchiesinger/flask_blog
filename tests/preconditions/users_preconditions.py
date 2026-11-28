@@ -36,7 +36,7 @@ def create_user(
     Returns:
         UserObject: обёртка над созданным пользователем для дальнейших шагов.
     """
-    with step("ORM. Создание пользователя"):
+    with step(f"ORM. Создание пользователя {username}"):
         with app.app_context():
             user = User(username=username, role=role)
             user.set_password(password)
@@ -88,6 +88,17 @@ def setup_logged_in_user(setup_test_user: UserObject) -> UserObject:
     """Открывает WEB-сессию пользователя через форму логина."""
     user = setup_test_user
     with step("Пользователь. WEB. Вход в систему"):
+        response = user.web.auth.login(username=user.db_model.username, password=user.password)
+        assert_redirect(expect="/", response=response)
+    return user
+
+
+@fixture
+@title("Администратор. WEB. Авторизован")
+def setup_logged_in_admin(setup_admin_user: UserObject) -> UserObject:
+    """Открывает WEB-сессию администратора через форму логина."""
+    user = setup_admin_user
+    with step("Администратор. WEB. Вход в систему"):
         response = user.web.auth.login(username=user.db_model.username, password=user.password)
         assert_redirect(expect="/", response=response)
     return user

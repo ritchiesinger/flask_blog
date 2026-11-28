@@ -28,6 +28,11 @@ class UserObject:
         self.web = WebClient(app_client=self._flask_client)
 
     @property
+    def client(self) -> FlaskClient:
+        """Клиент, от имени которого действуют фасады: для ORM-посева и прямых запросов (→ ARC-0061)."""
+        return self._flask_client
+
+    @property
     def api_token(self) -> str:
         """JWT-токен пользователя: при первом обращении запрашивается и кэшируется."""
         if not self._api_token:
